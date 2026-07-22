@@ -1,0 +1,91 @@
+name: "New cleaner rule"
+description: Request or propose a new app/cache cleaning rule
+title: "rule: "
+labels: ["cleaner-rules", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping Kudu clean more junk! You don't need to write any code — just tell us what app to clean and where its cache lives. If you'd like to submit a PR yourself, check out the [Rules Contributing Guide](../../rules/RULES.md).
+
+  - type: input
+    id: app-name
+    attributes:
+      label: App name
+      description: The display name of the application (e.g. "Notion", "Obsidian")
+      placeholder: Notion
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What kind of app is this?
+      options:
+        - App (general application)
+        - Browser
+        - Gaming / Game launcher
+        - Developer tool / Package manager
+        - System / OS-level cache
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: platforms
+    attributes:
+      label: Platforms
+      description: Which platforms does this app exist on?
+      options:
+        - label: Windows
+        - label: macOS
+        - label: Linux
+
+  - type: textarea
+    id: windows-paths
+    attributes:
+      label: Windows cache paths
+      description: |
+        List the cache/temp/log directories on Windows. Use template variables where possible:
+        `${LOCALAPPDATA}`, `${APPDATA}`, `${HOME}`, `${TMPDIR}`, `${PROGRAMDATA}`
+      placeholder: |
+        ${APPDATA}/Notion/Cache/Cache_Data
+        ${APPDATA}/Notion/GPUCache
+
+  - type: textarea
+    id: macos-paths
+    attributes:
+      label: macOS cache paths
+      description: |
+        List the cache/temp/log directories on macOS. Use template variables where possible:
+        `${CACHES}`, `${APP_SUPPORT}`, `${LIBRARY}`, `${HOME}`, `${TMPDIR}`
+      placeholder: |
+        ${CACHES}/notion.id
+        ${APP_SUPPORT}/Notion/Cache
+
+  - type: textarea
+    id: linux-paths
+    attributes:
+      label: Linux cache paths
+      description: |
+        List the cache/temp/log directories on Linux. Use template variables where possible:
+        `${CACHE}`, `${CONFIG}`, `${LOCAL_SHARE}`, `${HOME}`, `${TMPDIR}`
+      placeholder: |
+        ${CONFIG}/Notion/Cache/Cache_Data
+        ${CONFIG}/Notion/GPUCache
+
+  - type: textarea
+    id: safety-notes
+    attributes:
+      label: Safety notes
+      description: |
+        How did you verify these paths are safe to clean? Are they purely cache/temp/log data?
+        Have you confirmed no user data, settings, or login tokens live in these directories?
+      placeholder: Verified by inspecting directory contents — only contains Chromium cache blobs and GPU shader cache.
+
+  - type: checkboxes
+    id: willing-to-pr
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm willing to submit a PR for this rule

@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Kerentanan",
+  "pageDescription": "Lihat kerentanan yang diketahui yang dikesan dalam perisian yang dipasang",
+  "loading": "Memuatkan kerentanan...",
+  "refetchButton": "Muat semula",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent Diperlukan",
+    "description": "Pengimbasan CVE memerlukan Cloud Agent dipautkan. Pergi ke Tetapan → Cloud untuk menyambungkan peranti anda."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent Tidak Disambungkan",
+    "description": "Cloud Agent tidak disambungkan pada masa ini. Semak sambungan anda dalam Tetapan → Cloud."
+  },
+  "emptyState": {
+    "title": "Tiada Kerentanan Dikesan",
+    "description": "Tiada CVE yang diketahui ditemui dalam perisian yang dipasang. Sistem anda kelihatan selamat!"
+  },
+  "severity": {
+    "critical": "Kritikal",
+    "high": "Tinggi",
+    "medium": "Sederhana",
+    "low": "Rendah",
+    "none": "Tiada"
+  },
+  "summary": {
+    "total": "Jumlah",
+    "critical": "Kritikal",
+    "high": "Tinggi",
+    "medium": "Sederhana",
+    "low": "Rendah"
+  },
+  "filter": {
+    "all": "Semua",
+    "searchPlaceholder": "Cari mengikut nama aplikasi atau ID CVE...",
+    "noResults": "Tiada kerentanan sepadan dengan penapis semasa anda"
+  },
+  "error": {
+    "title": "Gagal Memuatkan Kerentanan",
+    "description": "Tidak dapat mendapatkan data kerentanan daripada pelayan. Cuba muat semula atau semak sambungan cloud anda."
+  },
+  "card": {
+    "installed": "Dipasang: {{version}}",
+    "fixAvailable": "Pembaikan: {{version}}",
+    "noFix": "Tiada pembaikan tersedia",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Mula dikesan: {{date}}",
+    "lastScanned": "Imbasan terakhir: {{date}}",
+    "viewDetails": "Lihat Butiran CVE",
+    "checkForUpdates": "Semak Kemas Kini"
+  },
+  "pagination": {
+    "previous": "Sebelumnya",
+    "next": "Seterusnya",
+    "page": "Halaman {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Gagal memuatkan data kerentanan",
+    "fetchFailedNotConnected": "Cloud Agent tidak disambungkan"
+  }
+}

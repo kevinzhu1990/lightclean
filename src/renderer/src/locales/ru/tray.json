@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Открыть LightClean",
+  "quit": "Выход",
+  "scheduledTaskNotificationTitle": "LightClean — Запланированная задача",
+  "scheduledTaskNotificationBody": "Выполняется \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean — Сканирование завершено",
+  "scanCompleteNotificationBody": "Найдено {{itemCount}} элементов ({{sizeMB}} МБ), которые можно очистить.",
+  "scheduledScanName": "Запланированное сканирование"
+}

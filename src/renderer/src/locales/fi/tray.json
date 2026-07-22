@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Avaa LightClean",
+  "quit": "Lopeta",
+  "scheduledTaskNotificationTitle": "LightClean - Ajastettu tehtävä",
+  "scheduledTaskNotificationBody": "Suoritetaan \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Tarkistus valmis",
+  "scanCompleteNotificationBody": "Löytyi {{itemCount}} kohdetta ({{sizeMB}} MB), jotka voidaan puhdistaa.",
+  "scheduledScanName": "Ajastettu tarkistus"
+}

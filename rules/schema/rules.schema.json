@@ -1,0 +1,297 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kudu Cleaner Rules",
+  "description": "Schema for Kudu cleaner rule files. Each JSON file defines cleaning targets for a specific category and platform.",
+  "oneOf": [
+    { "$ref": "#/definitions/SystemRules" },
+    { "$ref": "#/definitions/BrowserRules" },
+    { "$ref": "#/definitions/AppRules" },
+    { "$ref": "#/definitions/GamingRules" },
+    { "$ref": "#/definitions/GpuCacheRules" },
+    { "$ref": "#/definitions/SteamRules" },
+    { "$ref": "#/definitions/DatabaseRules" },
+    { "$ref": "#/definitions/MiscRules" }
+  ],
+  "definitions": {
+    "TemplatePath": {
+      "type": "string",
+      "description": "A file path that may contain template variables like ${HOME}, ${LOCALAPPDATA}, etc. Use forward slashes — the loader converts to OS-native separators."
+    },
+
+    "CleanTarget": {
+      "type": "object",
+      "required": ["path", "subcategory"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "$ref": "#/definitions/TemplatePath" },
+        "subcategory": { "type": "string", "minLength": 1, "description": "Display label for this target group" },
+        "needsAdmin": { "type": "boolean", "description": "If true, this target requires elevated privileges" },
+        "childSubdir": { "type": "string", "description": "If set, scan path/*/childSubdir instead of path directly (e.g. 'cache' for Flatpak)" },
+        "description": { "type": "string", "description": "Optional explanation of what this target cleans and why it's safe" }
+      }
+    },
+
+    "SingleFileTarget": {
+      "type": "object",
+      "required": ["path", "subcategory"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "$ref": "#/definitions/TemplatePath" },
+        "subcategory": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" }
+      }
+    },
+
+    "AppCacheDef": {
+      "type": "object",
+      "required": ["id", "name", "paths"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Unique identifier (lowercase, hyphens allowed)" },
+        "name": { "type": "string", "minLength": 1, "description": "Display name" },
+        "paths": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TemplatePath" },
+          "minItems": 1
+        },
+        "childSubdir": { "type": "string", "description": "If set, scan paths/*/childSubdir instead of paths directly" },
+        "description": { "type": "string" }
+      }
+    },
+
+    "ChromiumBrowser": {
+      "type": "object",
+      "required": ["key", "base"],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["chrome", "edge", "brave", "opera", "operaGX", "vivaldi", "arc", "chromium", "thorium", "supermium", "helium", "cromite", "catsxp"],
+          "description": "Browser identifier matching the BrowserPathConfig keys"
+        },
+        "base": { "$ref": "#/definitions/TemplatePath" }
+      }
+    },
+
+    "FirefoxForkBrowser": {
+      "type": "object",
+      "required": ["key", "base", "cache"],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["librewolf", "waterfox", "floorp", "zen"],
+          "description": "Firefox-fork browser identifier matching the BrowserPathConfig keys"
+        },
+        "base": { "$ref": "#/definitions/TemplatePath" },
+        "cache": { "$ref": "#/definitions/TemplatePath" }
+      }
+    },
+
+    "DatabaseTarget": {
+      "type": "object",
+      "required": ["label", "basePath", "dbFiles"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "description": "Display label (e.g. 'Chrome', 'Firefox')" },
+        "basePath": { "$ref": "#/definitions/TemplatePath" },
+        "dbFiles": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Specific database filenames or relative paths"
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$[a-zA-Z]+$",
+              "description": "Reference to a sharedDbFileSets key, e.g. '$chromium'"
+            }
+          ]
+        },
+        "multiProfile": { "type": "boolean", "description": "If true, scan all profile subdirectories under basePath" },
+        "profilePattern": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns for profile subdirectories (default: 'Profile *' and 'Default')"
+        },
+        "description": { "type": "string" }
+      }
+    },
+
+    "SystemRules": {
+      "type": "object",
+      "required": ["type", "cleanTargets"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "system" },
+        "cleanTargets": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CleanTarget" }
+        },
+        "singleFileTargets": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SingleFileTarget" }
+        }
+      }
+    },
+
+    "BrowserRules": {
+      "type": "object",
+      "required": ["type", "chromiumCacheDirs", "chromium", "firefox"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "browsers" },
+        "chromiumCacheDirs": {
+          "type": "object",
+          "required": ["cache", "codeCache", "gpuCache", "serviceWorker"],
+          "additionalProperties": false,
+          "properties": {
+            "cache": { "type": "string" },
+            "codeCache": { "type": "string" },
+            "gpuCache": { "type": "string" },
+            "serviceWorker": { "type": "string" }
+          }
+        },
+        "chromium": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ChromiumBrowser" }
+        },
+        "firefox": {
+          "type": "object",
+          "required": ["base", "cache"],
+          "additionalProperties": false,
+          "properties": {
+            "base": { "$ref": "#/definitions/TemplatePath" },
+            "cache": { "$ref": "#/definitions/TemplatePath" }
+          }
+        },
+        "firefoxForks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FirefoxForkBrowser" }
+        },
+        "safari": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["cache"],
+              "additionalProperties": false,
+              "properties": {
+                "cache": { "$ref": "#/definitions/TemplatePath" }
+              }
+            },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+
+    "AppRules": {
+      "type": "object",
+      "required": ["type", "apps"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "apps" },
+        "apps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AppCacheDef" }
+        }
+      }
+    },
+
+    "GamingRules": {
+      "type": "object",
+      "required": ["type", "apps"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "gaming" },
+        "apps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AppCacheDef" }
+        }
+      }
+    },
+
+    "GpuCacheRules": {
+      "type": "object",
+      "required": ["type", "apps"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "gpu-cache" },
+        "apps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AppCacheDef" }
+        }
+      }
+    },
+
+    "SteamRules": {
+      "type": "object",
+      "required": ["type", "libraries", "redistPatterns"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "steam" },
+        "libraries": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TemplatePath" }
+        },
+        "redistPatterns": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Known redistributable folder name patterns"
+        }
+      }
+    },
+
+    "DatabaseRules": {
+      "type": "object",
+      "required": ["type", "targets"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "databases" },
+        "sharedDbFileSets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "description": "Reusable sets of database filenames. Reference in targets via '$setName' in dbFiles."
+        },
+        "targets": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DatabaseTarget" }
+        }
+      }
+    },
+
+    "MiscRules": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "type": { "const": "misc" },
+        "protectedEventLogs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Event log filenames that must never be deleted"
+        },
+        "trashPath": {
+          "oneOf": [
+            { "$ref": "#/definitions/TemplatePath" },
+            { "type": "null" }
+          ],
+          "description": "Trash/Recycle Bin path, or null if managed by OS"
+        }
+      }
+    }
+  }
+}

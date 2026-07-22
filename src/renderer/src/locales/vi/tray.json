@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Mở LightClean",
+  "quit": "Thoát",
+  "scheduledTaskNotificationTitle": "LightClean - Tác vụ theo lịch",
+  "scheduledTaskNotificationBody": "Đang chạy \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Quét hoàn tất",
+  "scanCompleteNotificationBody": "Đã tìm thấy {{itemCount}} mục ({{sizeMB}} MB) có thể dọn dẹp.",
+  "scheduledScanName": "Quét theo lịch"
+}

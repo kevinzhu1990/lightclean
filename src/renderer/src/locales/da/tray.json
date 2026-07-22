@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Åbn LightClean",
+  "quit": "Afslut",
+  "scheduledTaskNotificationTitle": "LightClean - Planlagt opgave",
+  "scheduledTaskNotificationBody": "Kører \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Scanning fuldført",
+  "scanCompleteNotificationBody": "Fandt {{itemCount}} elementer ({{sizeMB}} MB), der kan ryddes op.",
+  "scheduledScanName": "Planlagt scanning"
+}

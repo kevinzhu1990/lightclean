@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "פתח את LightClean",
+  "quit": "יציאה",
+  "scheduledTaskNotificationTitle": "LightClean - משימה מתוזמנת",
+  "scheduledTaskNotificationBody": "מפעיל את \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - הסריקה הושלמה",
+  "scanCompleteNotificationBody": "נמצאו {{itemCount}} פריטים ({{sizeMB}} MB) שניתן לנקות.",
+  "scheduledScanName": "סריקה מתוזמנת"
+}

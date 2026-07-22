@@ -1,0 +1,76 @@
+appId: com.lightclean.app
+productName: 轻净 LightClean
+copyright: Copyright © 2024-2026 LightClean Contributors
+
+directories:
+  buildResources: resources
+  output: dist
+
+files:
+  - out/**/*
+
+extraResources:
+  - from: resources/icon.png
+    to: icon.png
+    filter:
+      - "**/*"
+  - from: resources/icons
+    to: icons
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+  # Start normally so Chromium's renderer sandbox can launch. Features that
+  # need elevated rights use LightClean's explicit "run as administrator" flow.
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: true
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  shortcutName: 轻净 LightClean
+  artifactName: LightClean-Setup-${version}.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon.png
+  category: public.app-categories.utilities
+  hardenedRuntime: true
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+  artifactName: LightClean-${version}-${arch}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  icon: resources/icons/
+  category: Utility
+  artifactName: LightClean-${version}-${arch}.${ext}
+
+deb:
+  depends:
+    - libgtk-3-0
+    - libnss3
+    - libxss1
+    - libasound2 | libasound2t64
+    - libgbm1
+    - libfuse2 | libfuse2t64
+  afterInstall: scripts/deb-postinstall.sh

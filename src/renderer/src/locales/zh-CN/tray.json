@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "打开 LightClean",
+  "quit": "退出",
+  "scheduledTaskNotificationTitle": "LightClean - 计划任务",
+  "scheduledTaskNotificationBody": "正在运行“{{name}}”...",
+  "scanCompleteNotificationTitle": "LightClean - 扫描完成",
+  "scanCompleteNotificationBody": "发现 {{itemCount}} 个可清理项（{{sizeMB}} MB）。",
+  "scheduledScanName": "计划扫描"
+}

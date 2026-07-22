@@ -1,0 +1,60 @@
+{
+  "pageTitle": "الثغرات الأمنية",
+  "pageDescription": "اعرض الثغرات الأمنية المعروفة التي تم اكتشافها في البرامج المثبتة لديك",
+  "loading": "جارٍ تحميل الثغرات الأمنية...",
+  "refetchButton": "تحديث",
+  "cloudNotConfigured": {
+    "title": "يلزم Cloud Agent",
+    "description": "يتطلب فحص CVE ربط Cloud Agent. انتقل إلى الإعدادات ← Cloud لتوصيل جهازك."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent غير متصل",
+    "description": "Cloud Agent غير متصل حاليًا. تحقق من اتصالك في الإعدادات ← Cloud."
+  },
+  "emptyState": {
+    "title": "لم يتم اكتشاف أي ثغرات أمنية",
+    "description": "لم يتم العثور على أي CVEs معروفة في البرامج المثبتة لديك. يبدو أن نظامك آمن!"
+  },
+  "severity": {
+    "critical": "حرجة",
+    "high": "مرتفعة",
+    "medium": "متوسطة",
+    "low": "منخفضة",
+    "none": "لا يوجد"
+  },
+  "summary": {
+    "total": "الإجمالي",
+    "critical": "حرجة",
+    "high": "مرتفعة",
+    "medium": "متوسطة",
+    "low": "منخفضة"
+  },
+  "filter": {
+    "all": "الكل",
+    "searchPlaceholder": "ابحث باسم التطبيق أو معرّف CVE...",
+    "noResults": "لا توجد ثغرات أمنية تطابق عوامل التصفية الحالية"
+  },
+  "error": {
+    "title": "فشل تحميل الثغرات الأمنية",
+    "description": "تعذر استرداد بيانات الثغرات الأمنية من الخادم. حاول التحديث أو تحقق من اتصالك السحابي."
+  },
+  "card": {
+    "installed": "المثبت: {{version}}",
+    "fixAvailable": "الإصلاح: {{version}}",
+    "noFix": "لا يتوفر إصلاح",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "تم الاكتشاف لأول مرة: {{date}}",
+    "lastScanned": "آخر فحص: {{date}}",
+    "viewDetails": "عرض تفاصيل CVE",
+    "checkForUpdates": "التحقق من وجود تحديثات"
+  },
+  "pagination": {
+    "previous": "السابق",
+    "next": "التالي",
+    "page": "الصفحة {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "فشل تحميل بيانات الثغرات الأمنية",
+    "fetchFailedNotConnected": "Cloud Agent غير متصل"
+  }
+}

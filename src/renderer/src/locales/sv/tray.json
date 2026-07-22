@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Öppna LightClean",
+  "quit": "Avsluta",
+  "scheduledTaskNotificationTitle": "LightClean - Schemalagd aktivitet",
+  "scheduledTaskNotificationBody": "Kör \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Genomsökning slutförd",
+  "scanCompleteNotificationBody": "Hittade {{itemCount}} objekt ({{sizeMB}} MB) som kan rensas.",
+  "scheduledScanName": "Schemalagd genomsökning"
+}

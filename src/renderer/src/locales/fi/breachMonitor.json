@@ -1,0 +1,74 @@
+{
+  "pageTitle": "Tietomurtovalvonta",
+  "pageDescription": "Tarkista, ovatko sähköpostiosoitteesi paljastuneet tunnetuissa tietomurroissa",
+  "loading": "Ladataan tietomurtotietoja...",
+  "summary": {
+    "totalBreaches": "Tietomurtoja yhteensä",
+    "unacknowledged": "Uudet",
+    "emailsMonitored": "Valvotut sähköpostit",
+    "emailsMonitoredTooltip": "Basic-paketti: 1 sähköposti · Pro-paketti: 5 sähköpostia. Päivitä pakettisi Cloud-asetuksissa valvoaksesi useampia."
+  },
+  "addEmail": {
+    "placeholder": "Anna sähköpostiosoite",
+    "button": "Lisää sähköposti",
+    "adding": "Lisätään..."
+  },
+  "toast": {
+    "fetchFailed": "Tietomurtotietojen lataaminen epäonnistui",
+    "addFailed": "Sähköpostin lisääminen epäonnistui",
+    "removeFailed": "Sähköpostin poistaminen epäonnistui",
+    "invalidEmail": "Anna kelvollinen sähköpostiosoite",
+    "limitReached": "Pakettisi sähköpostiraja on saavutettu",
+    "acknowledged": "Tietomurrot merkitty tarkistetuiksi",
+    "acknowledgeFailed": "Tietomurtojen kuittaaminen epäonnistui"
+  },
+  "emptyState": {
+    "noEmails": "Valvottuja sähköposteja ei ole",
+    "noEmailsDesc": "Lisää sähköpostiosoite tarkistaaksesi aiemmat tietomurrot ja valvoaksesi jatkuvasti uusia vuotoja.",
+    "allClear": "Ei havaintoja",
+    "allClearDesc": "Yhtään valvotuista sähköpostiosoitteistasi ei ole löytynyt tunnetuista tietomurroista.",
+    "upgradeRequired": "Päivitys vaaditaan",
+    "upgradeRequiredDesc": "Tietomurtovalvonta on käytettävissä Basic-paketissa ja sitä ylemmissä. Päivitä pakettisi aloittaaksesi valvonnan.",
+    "goToCloud": "Näytä paketit",
+    "noBreachesForEmail": "Tälle sähköpostille ei löytynyt tietomurtoja",
+    "selectEmail": "Valitse sähköposti luettelosta nähdäksesi tietomurron tiedot"
+  },
+  "error": {
+    "title": "Tietomurtotietojen lataaminen epäonnistui",
+    "description": "Tarkista pilviyhteytesi ja yritä uudelleen."
+  },
+  "emailList": {
+    "breaches": "{{count}} tietomurto",
+    "breaches_other": "{{count}} tietomurtoa",
+    "newBreaches": "{{count}} uusi",
+    "noBreaches": "Ei tietomurtoja",
+    "checking": "Tarkistetaan...",
+    "paused": "Keskeytetty",
+    "remove": "Poista sähköposti",
+    "lastChecked": "Tarkistettu {{date}}"
+  },
+  "table": {
+    "email": "Sähköposti",
+    "breach": "Tietomurto",
+    "date": "Päivämäärä",
+    "accounts": "Tilit",
+    "data": "Vaarantuneet tiedot",
+    "status": "Tila",
+    "actions": "",
+    "new": "Uusi",
+    "reviewed": "Tarkistettu",
+    "sensitive": "Arkaluonteinen tietomurto",
+    "verified": "Vahvistettu",
+    "unverified": "Vahvistamaton"
+  },
+  "filter": {
+    "allEmails": "Kaikki sähköpostit"
+  },
+  "actions": {
+    "acknowledge": "Merkitse tarkistetuksi",
+    "acknowledgeTooltip": "Merkitse tämä tietomurto nähdyksi, jotta sitä ei enää näytetä uutena eikä siitä lähetetä ilmoituksia",
+    "acknowledgeAll": "Merkitse kaikki tarkistetuiksi",
+    "acknowledgeAllTooltip": "Merkitse kaikki tarkistamattomat tietomurrot nähdyiksi"
+  },
+  "refetchButton": "Päivitä"
+}

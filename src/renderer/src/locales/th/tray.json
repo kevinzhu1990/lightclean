@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "เปิด LightClean",
+  "quit": "ออก",
+  "scheduledTaskNotificationTitle": "LightClean - งานที่กำหนดเวลาไว้",
+  "scheduledTaskNotificationBody": "กำลังเรียกใช้ \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - การสแกนเสร็จสมบูรณ์",
+  "scanCompleteNotificationBody": "พบ {{itemCount}} รายการ ({{sizeMB}} MB) ที่สามารถล้างได้",
+  "scheduledScanName": "การสแกนตามกำหนดเวลา"
+}

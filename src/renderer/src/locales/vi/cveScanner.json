@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Lỗ hổng bảo mật",
+  "pageDescription": "Xem các lỗ hổng bảo mật đã biết được phát hiện trong phần mềm đã cài đặt của bạn",
+  "loading": "Đang tải lỗ hổng bảo mật...",
+  "refetchButton": "Làm mới",
+  "cloudNotConfigured": {
+    "title": "Yêu cầu Cloud Agent",
+    "description": "Quét CVE yêu cầu Cloud Agent phải được liên kết. Đi tới Cài đặt → Cloud để kết nối thiết bị của bạn."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent chưa kết nối",
+    "description": "Cloud Agent hiện chưa được kết nối. Hãy kiểm tra kết nối của bạn trong Cài đặt → Cloud."
+  },
+  "emptyState": {
+    "title": "Không phát hiện lỗ hổng bảo mật",
+    "description": "Không tìm thấy CVE đã biết nào trong phần mềm đã cài đặt của bạn. Hệ thống của bạn có vẻ an toàn!"
+  },
+  "severity": {
+    "critical": "Nghiêm trọng",
+    "high": "Cao",
+    "medium": "Trung bình",
+    "low": "Thấp",
+    "none": "Không có"
+  },
+  "summary": {
+    "total": "Tổng cộng",
+    "critical": "Nghiêm trọng",
+    "high": "Cao",
+    "medium": "Trung bình",
+    "low": "Thấp"
+  },
+  "filter": {
+    "all": "Tất cả",
+    "searchPlaceholder": "Tìm theo tên ứng dụng hoặc ID CVE...",
+    "noResults": "Không có lỗ hổng bảo mật nào khớp với bộ lọc hiện tại của bạn"
+  },
+  "error": {
+    "title": "Không thể tải lỗ hổng bảo mật",
+    "description": "Không thể lấy dữ liệu lỗ hổng bảo mật từ máy chủ. Hãy thử làm mới hoặc kiểm tra kết nối cloud của bạn."
+  },
+  "card": {
+    "installed": "Đã cài đặt: {{version}}",
+    "fixAvailable": "Bản vá: {{version}}",
+    "noFix": "Không có bản vá",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Phát hiện lần đầu: {{date}}",
+    "lastScanned": "Quét lần cuối: {{date}}",
+    "viewDetails": "Xem chi tiết CVE",
+    "checkForUpdates": "Kiểm tra bản cập nhật"
+  },
+  "pagination": {
+    "previous": "Trước",
+    "next": "Tiếp",
+    "page": "Trang {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Không thể tải dữ liệu lỗ hổng bảo mật",
+    "fetchFailedNotConnected": "Cloud Agent chưa được kết nối"
+  }
+}

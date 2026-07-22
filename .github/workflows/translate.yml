@@ -1,0 +1,62 @@
+name: Auto-translate
+
+on:
+  pull_request:
+    paths:
+      - 'src/renderer/src/locales/en/**'
+
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+jobs:
+  translate:
+    # Skip PRs from forks (they won't have access to secrets)
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Check for API key
+        if: env.OPENAI_API_KEY == ''
+        run: |
+          echo "::warning::OPENAI_API_KEY secret is not set — skipping translations"
+
+      - name: Checkout
+        if: env.OPENAI_API_KEY != ''
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        if: env.OPENAI_API_KEY != ''
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: env.OPENAI_API_KEY != ''
+        run: npm ci
+
+      - name: Run translations
+        if: env.OPENAI_API_KEY != ''
+        run: node scripts/translate.js
+
+      - name: Commit & push translations
+        if: env.OPENAI_API_KEY != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/src/locales/
+          if git diff --staged --quiet; then
+            echo "No translation changes to commit"
+          else
+            git commit -m "chore: auto-update translations"
+            git push
+          fi

@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Sicherheitslücken",
+  "pageDescription": "Bekannte Sicherheitslücken anzeigen, die in Ihrer installierten Software erkannt wurden",
+  "loading": "Sicherheitslücken werden geladen...",
+  "refetchButton": "Aktualisieren",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent erforderlich",
+    "description": "Für das Scannen nach CVEs muss der Cloud Agent verknüpft sein. Gehen Sie zu Einstellungen → Cloud, um Ihr Gerät zu verbinden."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent nicht verbunden",
+    "description": "Der Cloud Agent ist derzeit nicht verbunden. Überprüfen Sie Ihre Verbindung unter Einstellungen → Cloud."
+  },
+  "emptyState": {
+    "title": "Keine Sicherheitslücken erkannt",
+    "description": "In Ihrer installierten Software wurden keine bekannten CVEs gefunden. Ihr System wirkt sicher!"
+  },
+  "severity": {
+    "critical": "Kritisch",
+    "high": "Hoch",
+    "medium": "Mittel",
+    "low": "Niedrig",
+    "none": "Keine"
+  },
+  "summary": {
+    "total": "Gesamt",
+    "critical": "Kritisch",
+    "high": "Hoch",
+    "medium": "Mittel",
+    "low": "Niedrig"
+  },
+  "filter": {
+    "all": "Alle",
+    "searchPlaceholder": "Nach App-Name oder CVE-ID suchen...",
+    "noResults": "Keine Sicherheitslücken entsprechen Ihren aktuellen Filtern"
+  },
+  "error": {
+    "title": "Sicherheitslücken konnten nicht geladen werden",
+    "description": "Die Daten zu Sicherheitslücken konnten nicht vom Server abgerufen werden. Versuchen Sie es mit einer Aktualisierung oder überprüfen Sie Ihre Cloud-Verbindung."
+  },
+  "card": {
+    "installed": "Installiert: {{version}}",
+    "fixAvailable": "Behebung: {{version}}",
+    "noFix": "Keine Behebung verfügbar",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Erstmals erkannt: {{date}}",
+    "lastScanned": "Zuletzt gescannt: {{date}}",
+    "viewDetails": "CVE-Details anzeigen",
+    "checkForUpdates": "Nach Updates suchen"
+  },
+  "pagination": {
+    "previous": "Zurück",
+    "next": "Weiter",
+    "page": "Seite {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Daten zu Sicherheitslücken konnten nicht geladen werden",
+    "fetchFailedNotConnected": "Cloud Agent ist nicht verbunden"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Buka LightClean",
+  "quit": "Keluar",
+  "scheduledTaskNotificationTitle": "LightClean - Tugas Terjadwal",
+  "scheduledTaskNotificationBody": "Menjalankan \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Pemindaian Selesai",
+  "scanCompleteNotificationBody": "Ditemukan {{itemCount}} item ({{sizeMB}} MB) yang dapat dibersihkan.",
+  "scheduledScanName": "Pemindaian Terjadwal"
+}

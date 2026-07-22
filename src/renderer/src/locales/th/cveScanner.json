@@ -1,0 +1,60 @@
+{
+  "pageTitle": "ช่องโหว่",
+  "pageDescription": "ดูช่องโหว่ที่ทราบซึ่งตรวจพบในซอฟต์แวร์ที่ติดตั้งของคุณ",
+  "loading": "กำลังโหลดข้อมูลช่องโหว่...",
+  "refetchButton": "รีเฟรช",
+  "cloudNotConfigured": {
+    "title": "ต้องใช้ Cloud Agent",
+    "description": "การสแกน CVE ต้องเชื่อมโยง Cloud Agent ก่อน ไปที่ การตั้งค่า → Cloud เพื่อเชื่อมต่ออุปกรณ์ของคุณ"
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent ไม่ได้เชื่อมต่อ",
+    "description": "ขณะนี้ Cloud Agent ไม่ได้เชื่อมต่ออยู่ ตรวจสอบการเชื่อมต่อของคุณได้ที่ การตั้งค่า → Cloud"
+  },
+  "emptyState": {
+    "title": "ไม่พบช่องโหว่",
+    "description": "ไม่พบ CVE ที่ทราบในซอฟต์แวร์ที่ติดตั้งของคุณ ระบบของคุณดูปลอดภัย!"
+  },
+  "severity": {
+    "critical": "วิกฤต",
+    "high": "สูง",
+    "medium": "ปานกลาง",
+    "low": "ต่ำ",
+    "none": "ไม่มี"
+  },
+  "summary": {
+    "total": "ทั้งหมด",
+    "critical": "วิกฤต",
+    "high": "สูง",
+    "medium": "ปานกลาง",
+    "low": "ต่ำ"
+  },
+  "filter": {
+    "all": "ทั้งหมด",
+    "searchPlaceholder": "ค้นหาตามชื่อแอปหรือ CVE ID...",
+    "noResults": "ไม่มีช่องโหว่ที่ตรงกับตัวกรองปัจจุบันของคุณ"
+  },
+  "error": {
+    "title": "โหลดข้อมูลช่องโหว่ไม่สำเร็จ",
+    "description": "ไม่สามารถดึงข้อมูลช่องโหว่จากเซิร์ฟเวอร์ได้ ลองรีเฟรชหรือตรวจสอบการเชื่อมต่อ Cloud ของคุณ"
+  },
+  "card": {
+    "installed": "ติดตั้งอยู่: {{version}}",
+    "fixAvailable": "การแก้ไข: {{version}}",
+    "noFix": "ยังไม่มีการแก้ไข",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "ตรวจพบครั้งแรก: {{date}}",
+    "lastScanned": "สแกนล่าสุด: {{date}}",
+    "viewDetails": "ดูรายละเอียด CVE",
+    "checkForUpdates": "ตรวจหาการอัปเดต"
+  },
+  "pagination": {
+    "previous": "ก่อนหน้า",
+    "next": "ถัดไป",
+    "page": "หน้า {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "โหลดข้อมูลช่องโหว่ไม่สำเร็จ",
+    "fetchFailedNotConnected": "Cloud Agent ไม่ได้เชื่อมต่อ"
+  }
+}

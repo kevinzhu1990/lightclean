@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Sårbarheter",
+  "pageDescription": "Vis kjente sårbarheter som er oppdaget i den installerte programvaren",
+  "loading": "Laster sårbarheter...",
+  "refetchButton": "Oppdater",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent kreves",
+    "description": "CVE-skanning krever at Cloud Agent er koblet til. Gå til Innstillinger → Cloud for å koble til enheten din."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent er ikke tilkoblet",
+    "description": "Cloud Agent er for øyeblikket ikke tilkoblet. Kontroller tilkoblingen i Innstillinger → Cloud."
+  },
+  "emptyState": {
+    "title": "Ingen sårbarheter oppdaget",
+    "description": "Ingen kjente CVE-er ble funnet i den installerte programvaren. Systemet ditt ser sikkert ut!"
+  },
+  "severity": {
+    "critical": "Kritisk",
+    "high": "Høy",
+    "medium": "Middels",
+    "low": "Lav",
+    "none": "Ingen"
+  },
+  "summary": {
+    "total": "Totalt",
+    "critical": "Kritisk",
+    "high": "Høy",
+    "medium": "Middels",
+    "low": "Lav"
+  },
+  "filter": {
+    "all": "Alle",
+    "searchPlaceholder": "Søk etter appnavn eller CVE-ID...",
+    "noResults": "Ingen sårbarheter samsvarer med de gjeldende filtrene"
+  },
+  "error": {
+    "title": "Kunne ikke laste inn sårbarheter",
+    "description": "Kunne ikke hente sårbarhetsdata fra serveren. Prøv å oppdatere eller kontroller cloud-tilkoblingen."
+  },
+  "card": {
+    "installed": "Installert: {{version}}",
+    "fixAvailable": "Løsning: {{version}}",
+    "noFix": "Ingen løsning tilgjengelig",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Først oppdaget: {{date}}",
+    "lastScanned": "Sist skannet: {{date}}",
+    "viewDetails": "Vis CVE-detaljer",
+    "checkForUpdates": "Se etter oppdateringer"
+  },
+  "pagination": {
+    "previous": "Forrige",
+    "next": "Neste",
+    "page": "Side {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Kunne ikke laste inn sårbarhetsdata",
+    "fetchFailedNotConnected": "Cloud Agent er ikke tilkoblet"
+  }
+}

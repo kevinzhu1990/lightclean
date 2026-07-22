@@ -1,0 +1,36 @@
+{
+  "$schema": "../schema/rules.schema.json",
+  "type": "browsers",
+  "chromiumCacheDirs": {
+    "cache": "Cache",
+    "codeCache": "Code Cache",
+    "gpuCache": "GpuCache",
+    "serviceWorker": "Service Worker/CacheStorage"
+  },
+  "chromium": [
+    { "key": "chrome", "base": "${APP_SUPPORT}/Google/Chrome" },
+    { "key": "edge", "base": "${APP_SUPPORT}/Microsoft Edge" },
+    { "key": "brave", "base": "${APP_SUPPORT}/BraveSoftware/Brave-Browser" },
+    { "key": "opera", "base": "${APP_SUPPORT}/com.operasoftware.Opera" },
+    { "key": "operaGX", "base": "${APP_SUPPORT}/com.operasoftware.OperaGX" },
+    { "key": "vivaldi", "base": "${APP_SUPPORT}/Vivaldi" },
+    { "key": "arc", "base": "${APP_SUPPORT}/Arc/User Data" },
+    { "key": "chromium", "base": "${APP_SUPPORT}/Chromium" },
+    { "key": "thorium", "base": "${APP_SUPPORT}/Thorium" },
+    { "key": "supermium", "base": "${APP_SUPPORT}/Supermium" },
+    { "key": "helium", "base": "${APP_SUPPORT}/net.imput.helium" },
+    { "key": "cromite", "base": "${APP_SUPPORT}/Cromite" },
+    { "key": "catsxp", "base": "${APP_SUPPORT}/ArcSoft/CatsXP" }
+  ],
+  "firefox": {
+    "base": "${APP_SUPPORT}/Firefox/Profiles",
+    "cache": "${CACHES}/Firefox/Profiles"
+  },
+  "firefoxForks": [
+    { "key": "librewolf", "base": "${APP_SUPPORT}/LibreWolf/Profiles", "cache": "${CACHES}/LibreWolf/Profiles" },
+    { "key": "waterfox", "base": "${APP_SUPPORT}/Waterfox/Profiles", "cache": "${CACHES}/Waterfox/Profiles" },
+    { "key": "floorp", "base": "${APP_SUPPORT}/Floorp/Profiles", "cache": "${CACHES}/Floorp/Profiles" },
+    { "key": "zen", "base": "${APP_SUPPORT}/Zen/Profiles", "cache": "${CACHES}/Zen/Profiles" }
+  ],
+  "safari": { "cache": "${CACHES}/com.apple.Safari" }
+}

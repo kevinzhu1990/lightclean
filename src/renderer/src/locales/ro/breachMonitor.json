@@ -1,0 +1,74 @@
+{
+  "pageTitle": "Monitor de breșe",
+  "pageDescription": "Verificați dacă adresele dvs. de e-mail au fost expuse în breșe de date cunoscute",
+  "loading": "Se încarcă datele despre breșe...",
+  "summary": {
+    "totalBreaches": "Total breșe",
+    "unacknowledged": "Noi",
+    "emailsMonitored": "E-mailuri monitorizate",
+    "emailsMonitoredTooltip": "Plan Basic: 1 e-mail · Plan Pro: 5 e-mailuri. Actualizați-vă planul în setările Cloud pentru a monitoriza mai multe."
+  },
+  "addEmail": {
+    "placeholder": "Introduceți o adresă de e-mail",
+    "button": "Adăugați e-mail",
+    "adding": "Se adaugă..."
+  },
+  "toast": {
+    "fetchFailed": "Încărcarea datelor despre breșe a eșuat",
+    "addFailed": "Adăugarea e-mailului a eșuat",
+    "removeFailed": "Eliminarea e-mailului a eșuat",
+    "invalidEmail": "Introduceți o adresă de e-mail validă",
+    "limitReached": "Limita de e-mailuri pentru planul dvs. a fost atinsă",
+    "acknowledged": "Breșele au fost marcate ca revizuite",
+    "acknowledgeFailed": "Marcarea breșelor a eșuat"
+  },
+  "emptyState": {
+    "noEmails": "Niciun e-mail monitorizat",
+    "noEmailsDesc": "Adăugați o adresă de e-mail pentru a verifica breșele de date din trecut și pentru a monitoriza continuu apariția unor noi scurgeri.",
+    "allClear": "Totul este în regulă",
+    "allClearDesc": "Niciunul dintre e-mailurile dvs. monitorizate nu a fost găsit în vreo breșă de date cunoscută.",
+    "upgradeRequired": "Este necesară actualizarea",
+    "upgradeRequiredDesc": "Monitorizarea breșelor este disponibilă în planul Basic și în planurile superioare. Actualizați-vă planul pentru a începe monitorizarea.",
+    "goToCloud": "Vedeți planurile",
+    "noBreachesForEmail": "Nu au fost găsite breșe pentru acest e-mail",
+    "selectEmail": "Selectați un e-mail din listă pentru a vedea detaliile breșei"
+  },
+  "error": {
+    "title": "Încărcarea datelor despre breșe a eșuat",
+    "description": "Verificați conexiunea la cloud și încercați din nou."
+  },
+  "emailList": {
+    "breaches": "{{count}} breșă",
+    "breaches_other": "{{count}} breșe",
+    "newBreaches": "{{count}} noi",
+    "noBreaches": "Nicio breșă",
+    "checking": "Se verifică...",
+    "paused": "Întrerupt",
+    "remove": "Eliminați e-mailul",
+    "lastChecked": "Verificat la {{date}}"
+  },
+  "table": {
+    "email": "E-mail",
+    "breach": "Breșă",
+    "date": "Dată",
+    "accounts": "Conturi",
+    "data": "Date compromise",
+    "status": "Stare",
+    "actions": "",
+    "new": "Nou",
+    "reviewed": "Revizuit",
+    "sensitive": "Breșă sensibilă",
+    "verified": "Verificată",
+    "unverified": "Neverificată"
+  },
+  "filter": {
+    "allEmails": "Toate e-mailurile"
+  },
+  "actions": {
+    "acknowledge": "Marcați ca revizuit",
+    "acknowledgeTooltip": "Marcați această breșă ca văzută, astfel încât să nu mai apară ca nouă și să nu mai declanșeze notificări",
+    "acknowledgeAll": "Marcați totul ca revizuit",
+    "acknowledgeAllTooltip": "Marcați toate breșele nerevizuite ca văzute"
+  },
+  "refetchButton": "Reîmprospătați"
+}

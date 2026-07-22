@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Sårbarheter",
+  "pageDescription": "Visa kända sårbarheter som har upptäckts i din installerade programvara",
+  "loading": "Läser in sårbarheter...",
+  "refetchButton": "Uppdatera",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent krävs",
+    "description": "CVE-skanning kräver att Cloud Agent är länkad. Gå till Inställningar → Cloud för att ansluta din enhet."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent är inte ansluten",
+    "description": "Cloud Agent är för närvarande inte ansluten. Kontrollera din anslutning i Inställningar → Cloud."
+  },
+  "emptyState": {
+    "title": "Inga sårbarheter upptäckta",
+    "description": "Inga kända CVE:er hittades i din installerade programvara. Ditt system verkar säkert!"
+  },
+  "severity": {
+    "critical": "Kritisk",
+    "high": "Hög",
+    "medium": "Medel",
+    "low": "Låg",
+    "none": "Ingen"
+  },
+  "summary": {
+    "total": "Totalt",
+    "critical": "Kritisk",
+    "high": "Hög",
+    "medium": "Medel",
+    "low": "Låg"
+  },
+  "filter": {
+    "all": "Alla",
+    "searchPlaceholder": "Sök efter appnamn eller CVE-ID...",
+    "noResults": "Inga sårbarheter matchar dina aktuella filter"
+  },
+  "error": {
+    "title": "Det gick inte att läsa in sårbarheter",
+    "description": "Det gick inte att hämta sårbarhetsdata från servern. Försök att uppdatera eller kontrollera din molnanslutning."
+  },
+  "card": {
+    "installed": "Installerad: {{version}}",
+    "fixAvailable": "Åtgärd: {{version}}",
+    "noFix": "Ingen åtgärd tillgänglig",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Först upptäckt: {{date}}",
+    "lastScanned": "Senast skannad: {{date}}",
+    "viewDetails": "Visa CVE-detaljer",
+    "checkForUpdates": "Sök efter uppdateringar"
+  },
+  "pagination": {
+    "previous": "Föregående",
+    "next": "Nästa",
+    "page": "Sida {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Det gick inte att läsa in sårbarhetsdata",
+    "fetchFailedNotConnected": "Cloud Agent är inte ansluten"
+  }
+}

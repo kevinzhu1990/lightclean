@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "LightClean を開く",
+  "quit": "終了",
+  "scheduledTaskNotificationTitle": "LightClean - スケジュールされたタスク",
+  "scheduledTaskNotificationBody": "\"{{name}}\" を実行しています...",
+  "scanCompleteNotificationTitle": "LightClean - スキャン完了",
+  "scanCompleteNotificationBody": "クリーンアップ可能な項目が {{itemCount}} 件（{{sizeMB}} MB）見つかりました。",
+  "scheduledScanName": "スケジュールされたスキャン"
+}

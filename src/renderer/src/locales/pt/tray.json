@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Abrir LightClean",
+  "quit": "Sair",
+  "scheduledTaskNotificationTitle": "LightClean - Tarefa Agendada",
+  "scheduledTaskNotificationBody": "A executar \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Verificação Concluída",
+  "scanCompleteNotificationBody": "Foram encontrados {{itemCount}} itens ({{sizeMB}} MB) que podem ser limpos.",
+  "scheduledScanName": "Verificação Agendada"
+}

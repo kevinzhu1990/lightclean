@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Kwetsbaarheden",
+  "pageDescription": "Bekijk bekende kwetsbaarheden die zijn gedetecteerd in uw geïnstalleerde software",
+  "loading": "Kwetsbaarheden laden...",
+  "refetchButton": "Vernieuwen",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent vereist",
+    "description": "Voor CVE-scans moet de Cloud Agent gekoppeld zijn. Ga naar Instellingen → Cloud om uw apparaat te verbinden."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent niet verbonden",
+    "description": "De Cloud Agent is momenteel niet verbonden. Controleer uw verbinding in Instellingen → Cloud."
+  },
+  "emptyState": {
+    "title": "Geen kwetsbaarheden gedetecteerd",
+    "description": "Er zijn geen bekende CVE's gevonden in uw geïnstalleerde software. Uw systeem lijkt veilig!"
+  },
+  "severity": {
+    "critical": "Kritiek",
+    "high": "Hoog",
+    "medium": "Gemiddeld",
+    "low": "Laag",
+    "none": "Geen"
+  },
+  "summary": {
+    "total": "Totaal",
+    "critical": "Kritiek",
+    "high": "Hoog",
+    "medium": "Gemiddeld",
+    "low": "Laag"
+  },
+  "filter": {
+    "all": "Alle",
+    "searchPlaceholder": "Zoeken op app-naam of CVE-ID...",
+    "noResults": "Geen kwetsbaarheden komen overeen met uw huidige filters"
+  },
+  "error": {
+    "title": "Kwetsbaarheden laden mislukt",
+    "description": "Kan kwetsbaarheidsgegevens niet van de server ophalen. Probeer te vernieuwen of controleer uw cloudverbinding."
+  },
+  "card": {
+    "installed": "Geïnstalleerd: {{version}}",
+    "fixAvailable": "Oplossing: {{version}}",
+    "noFix": "Geen oplossing beschikbaar",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Voor het eerst gedetecteerd: {{date}}",
+    "lastScanned": "Laatst gescand: {{date}}",
+    "viewDetails": "CVE-details bekijken",
+    "checkForUpdates": "Controleren op updates"
+  },
+  "pagination": {
+    "previous": "Vorige",
+    "next": "Volgende",
+    "page": "Pagina {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Kwetsbaarheidsgegevens laden mislukt",
+    "fetchFailedNotConnected": "Cloud Agent is niet verbonden"
+  }
+}

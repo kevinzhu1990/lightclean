@@ -1,0 +1,6 @@
+{
+  "$schema": "../schema/rules.schema.json",
+  "type": "misc",
+  "protectedEventLogs": [],
+  "trashPath": "${HOME}/.Trash"
+}

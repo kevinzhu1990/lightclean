@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "LightClean megnyitása",
+  "quit": "Kilépés",
+  "scheduledTaskNotificationTitle": "LightClean - Ütemezett feladat",
+  "scheduledTaskNotificationBody": "\"{{name}}\" futtatása...",
+  "scanCompleteNotificationTitle": "LightClean - Vizsgálat befejezve",
+  "scanCompleteNotificationBody": "{{itemCount}} tisztítható elem található ({{sizeMB}} MB).",
+  "scheduledScanName": "Ütemezett vizsgálat"
+}

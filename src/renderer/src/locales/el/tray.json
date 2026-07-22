@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Άνοιγμα του LightClean",
+  "quit": "Έξοδος",
+  "scheduledTaskNotificationTitle": "LightClean - Προγραμματισμένη εργασία",
+  "scheduledTaskNotificationBody": "Εκτέλεση του \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - Η σάρωση ολοκληρώθηκε",
+  "scanCompleteNotificationBody": "Βρέθηκαν {{itemCount}} στοιχεία ({{sizeMB}} MB) που μπορούν να καθαριστούν.",
+  "scheduledScanName": "Προγραμματισμένη σάρωση"
+}

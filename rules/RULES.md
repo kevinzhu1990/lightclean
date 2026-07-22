@@ -1,0 +1,186 @@
+# Contributing Cleaner Rules
+
+Kudu's cleaning targets are defined as JSON files in this directory. Adding support for a new app, game launcher, or cache location is as simple as editing a JSON file — no TypeScript or Electron knowledge required.
+
+Browse the [full cleaner directory](https://usekudu.com/cleaners) to see what's already covered and what's missing.
+
+## Directory Layout
+
+```
+rules/
+  schema/rules.schema.json    # JSON Schema (editor autocomplete + validation)
+  win32/                       # Windows rules
+  darwin/                      # macOS rules
+  linux/                       # Linux rules
+```
+
+Each platform has 8 files:
+
+| File | What it defines |
+|------|----------------|
+| `apps.json` | Application caches (Discord, VS Code, Spotify, etc.) |
+| `browsers.json` | Browser cache paths (Chrome, Firefox, Safari, etc.) |
+| `gaming.json` | Game launcher caches (Steam, Epic, EA, etc.) |
+| `gpu-cache.json` | GPU shader caches (NVIDIA, AMD, Intel, Mesa) |
+| `system.json` | System temp files, logs, crash dumps |
+| `databases.json` | SQLite databases to vacuum-optimize |
+| `steam.json` | Steam library paths and redistributable patterns |
+| `misc.json` | Protected event logs and trash path |
+
+## Quick Start: Use the CLI Generator
+
+The fastest way to add a new rule — no manual JSON editing needed:
+
+```bash
+npm run new-rule
+```
+
+This interactive tool will ask for the app name, platforms, and cache paths, then write the JSON entries for you. It auto-detects Chromium/Electron apps and generates the standard cache subdirectories.
+
+### Other Helpful Tools
+
+```bash
+npm run find-cache       # Discover uncovered cache directories on your machine
+npm run preview-rule     # Preview what a rule would clean (dry run)
+npm run parity-check     # See cross-platform coverage gaps
+npm run catalog          # Regenerate the rules catalog page
+```
+
+## Adding a New App Cleaner (Manual)
+
+If you prefer to edit the JSON files directly, here's how:
+
+### 1. Find the cache paths
+
+Find where the app stores its cache on each platform. Common locations:
+
+| Platform | Typical locations |
+|----------|------------------|
+| Windows | `%LOCALAPPDATA%\AppName\`, `%APPDATA%\AppName\` |
+| macOS | `~/Library/Caches/com.app.name`, `~/Library/Application Support/AppName/` |
+| Linux | `~/.cache/appname`, `~/.config/appname/` |
+
+**Only target cache, temp, and log directories.** Never include user data, settings, login tokens, or databases that store user content.
+
+### 2. Add the entry
+
+Add your app to `apps.json` for each platform where it exists. Example for a hypothetical "Acme Editor":
+
+```json
+{
+  "id": "acme-editor",
+  "name": "Acme Editor",
+  "paths": [
+    "${APPDATA}/AcmeEditor/Cache/Cache_Data",
+    "${APPDATA}/AcmeEditor/logs"
+  ]
+}
+```
+
+### 3. Template Variables
+
+Paths use template variables instead of hardcoded locations. The loader resolves these at runtime.
+
+**Windows (`win32/`):**
+| Variable | Resolves to |
+|----------|-------------|
+| `${HOME}` | `C:\Users\<username>` |
+| `${LOCALAPPDATA}` | `C:\Users\<username>\AppData\Local` |
+| `${APPDATA}` | `C:\Users\<username>\AppData\Roaming` |
+| `${WINDIR}` | `C:\Windows` |
+| `${PROGRAMDATA}` | `C:\ProgramData` |
+| `${PROGRAMFILES}` | `C:\Program Files` |
+| `${PROGRAMFILES_X86}` | `C:\Program Files (x86)` |
+| `${TMPDIR}` | System temp directory |
+
+**macOS (`darwin/`):**
+| Variable | Resolves to |
+|----------|-------------|
+| `${HOME}` | `/Users/<username>` |
+| `${LIBRARY}` | `~/Library` |
+| `${CACHES}` | `~/Library/Caches` |
+| `${APP_SUPPORT}` | `~/Library/Application Support` |
+| `${TMPDIR}` | System temp directory |
+
+**Linux (`linux/`):**
+| Variable | Resolves to |
+|----------|-------------|
+| `${HOME}` | `/home/<username>` |
+| `${CONFIG}` | `~/.config` |
+| `${CACHE}` | `~/.cache` |
+| `${LOCAL_SHARE}` | `~/.local/share` |
+| `${TMPDIR}` | System temp directory |
+
+### 4. JSON Format Rules
+
+- Use **forward slashes** (`/`) in all paths — the loader converts to backslashes on Windows automatically.
+- App IDs must be **lowercase with hyphens** (e.g. `my-app`, not `MyApp`).
+- Each app needs at least one path.
+- Add `"childSubdir"` if caches are in versioned subdirectories (e.g. JetBrains stores caches in `JetBrains/<version>/caches`).
+
+### 5. Editor Autocomplete
+
+Every JSON file includes a `$schema` reference. If your editor supports JSON Schema (VS Code, IntelliJ, etc.), you'll get autocomplete and inline validation automatically.
+
+### 6. Validate Your Changes
+
+```bash
+npm run validate:rules
+```
+
+This checks all rule files against the schema, verifies template variables are valid for each platform, and catches duplicate IDs. This also runs automatically in CI on every PR.
+
+### 7. Run Tests
+
+```bash
+npm test
+```
+
+The test suite includes schema validation tests that verify every rule file.
+
+## Field Reference
+
+### App/Gaming/GPU Cache Entry (`apps.json`, `gaming.json`, `gpu-cache.json`)
+
+```json
+{
+  "id": "app-name",           // Required. Lowercase, hyphens ok.
+  "name": "Display Name",     // Required. Shown in the UI.
+  "paths": ["${VAR}/path"],   // Required. At least one path.
+  "childSubdir": "caches",    // Optional. Scan path/*/childSubdir.
+  "description": "Why safe"   // Optional. Explain what's cleaned.
+}
+```
+
+### System Clean Target (`system.json`)
+
+```json
+{
+  "path": "${VAR}/path",        // Required.
+  "subcategory": "Label",       // Required. Shown in the UI.
+  "needsAdmin": true,           // Optional. Requires elevation.
+  "childSubdir": "cache",       // Optional. Scan path/*/childSubdir.
+  "description": "Details"      // Optional.
+}
+```
+
+### Database Target (`databases.json`)
+
+```json
+{
+  "label": "App Name",                  // Required. Display label.
+  "basePath": "${VAR}/path",             // Required. Base directory.
+  "dbFiles": ["History", "Cookies"],     // Required. DB filenames or "$shared" ref.
+  "multiProfile": true,                  // Optional. Scan profile subdirs.
+  "profilePattern": ["*.default*"]       // Optional. Glob for profiles.
+}
+```
+
+Use `"dbFiles": "$chromium"` to reference the `sharedDbFileSets` instead of repeating the same list.
+
+## Safety Guidelines
+
+- **Only clean cache, temp, and log data.** Never target user documents, settings, passwords, bookmarks, or session tokens.
+- **Mark system paths as `needsAdmin: true`** if they require elevated privileges.
+- **Test on a real system** before submitting — verify the paths actually exist and contain only disposable data.
+- **When in doubt, don't include it.** It's better to miss a cache directory than to delete something important.

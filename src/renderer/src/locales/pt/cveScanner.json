@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Vulnerabilidades",
+  "pageDescription": "Veja vulnerabilidades conhecidas detetadas no software instalado",
+  "loading": "A carregar vulnerabilidades...",
+  "refetchButton": "Atualizar",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent Necessário",
+    "description": "A análise de CVE requer que o Cloud Agent esteja associado. Vá a Definições → Cloud para ligar o seu dispositivo."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent Não Ligado",
+    "description": "O Cloud Agent não está atualmente ligado. Verifique a sua ligação em Definições → Cloud."
+  },
+  "emptyState": {
+    "title": "Nenhuma Vulnerabilidade Detetada",
+    "description": "Não foram encontrados CVEs conhecidos no software instalado. O seu sistema parece seguro!"
+  },
+  "severity": {
+    "critical": "Crítica",
+    "high": "Alta",
+    "medium": "Média",
+    "low": "Baixa",
+    "none": "Nenhuma"
+  },
+  "summary": {
+    "total": "Total",
+    "critical": "Crítica",
+    "high": "Alta",
+    "medium": "Média",
+    "low": "Baixa"
+  },
+  "filter": {
+    "all": "Todas",
+    "searchPlaceholder": "Pesquisar por nome da aplicação ou ID CVE...",
+    "noResults": "Nenhuma vulnerabilidade corresponde aos filtros atuais"
+  },
+  "error": {
+    "title": "Falha ao Carregar Vulnerabilidades",
+    "description": "Não foi possível obter os dados de vulnerabilidades do servidor. Tente atualizar ou verifique a sua ligação à cloud."
+  },
+  "card": {
+    "installed": "Instalada: {{version}}",
+    "fixAvailable": "Correção: {{version}}",
+    "noFix": "Nenhuma correção disponível",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Primeira deteção: {{date}}",
+    "lastScanned": "Última análise: {{date}}",
+    "viewDetails": "Ver Detalhes do CVE",
+    "checkForUpdates": "Procurar Atualizações"
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Seguinte",
+    "page": "Página {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Falha ao carregar os dados de vulnerabilidades",
+    "fetchFailedNotConnected": "O Cloud Agent não está ligado"
+  }
+}

@@ -1,0 +1,39 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      electron:
+        patterns:
+          - electron
+          - electron-builder
+          - electron-vite
+          - electron-updater
+      react:
+        patterns:
+          - react
+          - react-dom
+          - react-router-dom
+          - "@types/react*"
+      dev-tools:
+        patterns:
+          - typescript
+          - vite
+          - vitest
+          - tailwindcss
+          - "@tailwindcss/*"
+          - "@vitejs/*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci

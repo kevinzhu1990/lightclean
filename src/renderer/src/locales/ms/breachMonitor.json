@@ -1,0 +1,74 @@
+{
+  "pageTitle": "Pemantau Kebocoran",
+  "pageDescription": "Semak sama ada alamat e-mel anda telah terdedah dalam kebocoran data yang diketahui",
+  "loading": "Memuatkan data kebocoran...",
+  "summary": {
+    "totalBreaches": "Jumlah Kebocoran",
+    "unacknowledged": "Baharu",
+    "emailsMonitored": "E-mel Dipantau",
+    "emailsMonitoredTooltip": "Pelan Basic: 1 e-mel · Pelan Pro: 5 e-mel. Naik taraf pelan anda dalam tetapan Cloud untuk memantau lebih banyak."
+  },
+  "addEmail": {
+    "placeholder": "Masukkan alamat e-mel",
+    "button": "Tambah E-mel",
+    "adding": "Menambah..."
+  },
+  "toast": {
+    "fetchFailed": "Gagal memuatkan data kebocoran",
+    "addFailed": "Gagal menambah e-mel",
+    "removeFailed": "Gagal membuang e-mel",
+    "invalidEmail": "Sila masukkan alamat e-mel yang sah",
+    "limitReached": "Had e-mel telah dicapai untuk pelan anda",
+    "acknowledged": "Kebocoran ditandakan sebagai telah disemak",
+    "acknowledgeFailed": "Gagal mengakui kebocoran"
+  },
+  "emptyState": {
+    "noEmails": "Tiada e-mel dipantau",
+    "noEmailsDesc": "Tambah alamat e-mel untuk menyemak kebocoran data yang lalu dan memantau kebocoran baharu secara berterusan.",
+    "allClear": "Semua selamat",
+    "allClearDesc": "Tiada e-mel yang anda pantau ditemui dalam mana-mana kebocoran data yang diketahui.",
+    "upgradeRequired": "Naik taraf diperlukan",
+    "upgradeRequiredDesc": "Pemantauan kebocoran tersedia pada pelan Basic dan ke atas. Naik taraf pelan anda untuk mula memantau.",
+    "goToCloud": "Lihat Pelan",
+    "noBreachesForEmail": "Tiada kebocoran ditemui untuk e-mel ini",
+    "selectEmail": "Pilih e-mel daripada senarai untuk melihat butiran kebocoran"
+  },
+  "error": {
+    "title": "Gagal memuatkan data kebocoran",
+    "description": "Semak sambungan cloud anda dan cuba lagi."
+  },
+  "emailList": {
+    "breaches": "{{count}} kebocoran",
+    "breaches_other": "{{count}} kebocoran",
+    "newBreaches": "{{count}} baharu",
+    "noBreaches": "Tiada kebocoran",
+    "checking": "Menyemak...",
+    "paused": "Dijeda",
+    "remove": "Buang e-mel",
+    "lastChecked": "Disemak {{date}}"
+  },
+  "table": {
+    "email": "E-mel",
+    "breach": "Kebocoran",
+    "date": "Tarikh",
+    "accounts": "Akaun",
+    "data": "Data Terjejas",
+    "status": "Status",
+    "actions": "",
+    "new": "Baharu",
+    "reviewed": "Disemak",
+    "sensitive": "Kebocoran Sensitif",
+    "verified": "Disahkan",
+    "unverified": "Tidak Disahkan"
+  },
+  "filter": {
+    "allEmails": "Semua e-mel"
+  },
+  "actions": {
+    "acknowledge": "Tandakan sebagai telah disemak",
+    "acknowledgeTooltip": "Tandakan kebocoran ini sebagai telah dilihat supaya ia tidak lagi dipaparkan sebagai baharu atau mencetuskan pemberitahuan",
+    "acknowledgeAll": "Tandakan semua sebagai telah disemak",
+    "acknowledgeAllTooltip": "Tandakan semua kebocoran yang belum disemak sebagai telah dilihat"
+  },
+  "refetchButton": "Muat semula"
+}

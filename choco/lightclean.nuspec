@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>lightclean</id>
+    <version>1.2.3</version>
+    <title>轻净 LightClean</title>
+    <authors>LightClean Contributors</authors>
+    <owners>kevinzhu1990</owners>
+    <projectUrl>https://github.com/kevinzhu1990/lightclean</projectUrl>
+    <projectSourceUrl>https://github.com/kevinzhu1990/lightclean</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/kevinzhu1990/lightclean/issues</bugTrackerUrl>
+    <iconUrl>https://raw.githubusercontent.com/kevinzhu1990/lightclean/main/resources/icon.png</iconUrl>
+    <licenseUrl>https://github.com/kevinzhu1990/lightclean/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>system-cleaner utility optimization disk-cleanup junk-files open-source</tags>
+    <summary>A modern, open-source system cleaner for Windows</summary>
+    <description>LightClean is a free, open-source system cleaner and privacy utility with safe WeChat history cleanup for Windows and macOS.</description>
+    <releaseNotes>https://github.com/kevinzhu1990/lightclean/releases/tag/v1.2.3</releaseNotes>
+  </metadata>
+</package>

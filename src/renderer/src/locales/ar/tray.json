@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "فتح LightClean",
+  "quit": "إنهاء",
+  "scheduledTaskNotificationTitle": "LightClean - مهمة مجدولة",
+  "scheduledTaskNotificationBody": "جارٍ تشغيل \"{{name}}\"...",
+  "scanCompleteNotificationTitle": "LightClean - اكتمل الفحص",
+  "scanCompleteNotificationBody": "تم العثور على {{itemCount}} عنصرًا ({{sizeMB}} ميجابايت) يمكن تنظيفها.",
+  "scheduledScanName": "فحص مجدول"
+}

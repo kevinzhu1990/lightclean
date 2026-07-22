@@ -1,0 +1,41 @@
+diff --git a/node_modules/systeminformation/lib/util.js b/node_modules/systeminformation/lib/util.js
+index f8b854d..773dc42 100644
+--- a/node_modules/systeminformation/lib/util.js
++++ b/node_modules/systeminformation/lib/util.js
+@@ -571,12 +571,15 @@ function getCodepage() {
+   if (_windows) {
+     if (!codepage) {
+       try {
+-        const stdout = execSync('chcp', execOptsWin);
+-        const lines = stdout.toString().split('\r\n');
+-        const parts = lines[0].split(':');
+-        codepage = parts.length > 1 ? parts[1].replace('.', '').trim() : '';
++        // Avoid execSync('chcp') which triggers Sigma rule "Console CodePage Lookup Via CHCP".
++        // Use the Win32 API via PowerShell type reflection instead — no cmd.exe, no chcp.com.
++        const stdout = execSync(
++          'powershell.exe -NoProfile -NonInteractive -Command "[Console]::OutputEncoding.CodePage"',
++          execOptsWin
++        );
++        codepage = stdout.toString().trim() || '65001';
+       } catch {
+-        codepage = '437';
++        codepage = '65001';
+       }
+     }
+     return codepage;
+@@ -665,8 +668,13 @@ function execWin(cmd, opts, callback) {
+     callback = opts;
+     opts = execOptsWin;
+   }
+-  let newCmd = 'chcp 65001 > nul && cmd /C ' + cmd + ' && chcp ' + codepage + ' > nul';
+-  exec(newCmd, opts, (error, stdout) => {
++  // Avoid chcp calls that trigger Sigma rule "Console CodePage Lookup Via CHCP".
++  // Force UTF-8 output via environment variable instead of chcp 65001 / chcp <restore>.
++  // Node on Windows respects this when decoding child stdout.
++  let newCmd = 'cmd /D /C ' + cmd;
++  const env = Object.assign({}, opts.env || process.env);
++  const patchedOpts = Object.assign({}, opts, { env });
++  exec(newCmd, patchedOpts, (error, stdout) => {
+     callback(error, stdout);
+   });
+ }

@@ -1,0 +1,36 @@
+{
+  "$schema": "../schema/rules.schema.json",
+  "type": "browsers",
+  "chromiumCacheDirs": {
+    "cache": "Cache",
+    "codeCache": "Code Cache",
+    "gpuCache": "GpuCache",
+    "serviceWorker": "Service Worker/CacheStorage"
+  },
+  "chromium": [
+    { "key": "chrome", "base": "${CONFIG}/google-chrome" },
+    { "key": "edge", "base": "${CONFIG}/microsoft-edge" },
+    { "key": "brave", "base": "${CONFIG}/BraveSoftware/Brave-Browser" },
+    { "key": "opera", "base": "${CONFIG}/opera" },
+    { "key": "operaGX", "base": "${CONFIG}/opera-gx" },
+    { "key": "vivaldi", "base": "${CONFIG}/vivaldi" },
+    { "key": "arc", "base": "${CONFIG}/arc/User Data" },
+    { "key": "chromium", "base": "${CONFIG}/chromium" },
+    { "key": "thorium", "base": "${CONFIG}/thorium" },
+    { "key": "supermium", "base": "${CONFIG}/supermium" },
+    { "key": "helium", "base": "${CONFIG}/helium" },
+    { "key": "cromite", "base": "${CONFIG}/cromite" },
+    { "key": "catsxp", "base": "${CONFIG}/ArcSoft/CatsXP" }
+  ],
+  "firefox": {
+    "base": "${HOME}/.mozilla/firefox",
+    "cache": "${CACHE}/mozilla/firefox"
+  },
+  "firefoxForks": [
+    { "key": "librewolf", "base": "${HOME}/.librewolf", "cache": "${CACHE}/librewolf" },
+    { "key": "waterfox", "base": "${HOME}/.waterfox", "cache": "${CACHE}/waterfox" },
+    { "key": "floorp", "base": "${HOME}/.floorp", "cache": "${CACHE}/floorp" },
+    { "key": "zen", "base": "${HOME}/.zen", "cache": "${CACHE}/zen" }
+  ],
+  "safari": null
+}

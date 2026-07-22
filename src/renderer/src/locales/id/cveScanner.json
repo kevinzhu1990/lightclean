@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Kerentanan",
+  "pageDescription": "Lihat kerentanan yang diketahui yang terdeteksi pada perangkat lunak terinstal Anda",
+  "loading": "Memuat kerentanan...",
+  "refetchButton": "Segarkan",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent Diperlukan",
+    "description": "Pemindaian CVE memerlukan Cloud Agent yang ditautkan. Buka Pengaturan → Cloud untuk menghubungkan perangkat Anda."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent Tidak Terhubung",
+    "description": "Cloud Agent saat ini tidak terhubung. Periksa koneksi Anda di Pengaturan → Cloud."
+  },
+  "emptyState": {
+    "title": "Tidak Ada Kerentanan Terdeteksi",
+    "description": "Tidak ada CVE yang diketahui ditemukan pada perangkat lunak terinstal Anda. Sistem Anda tampak aman!"
+  },
+  "severity": {
+    "critical": "Kritis",
+    "high": "Tinggi",
+    "medium": "Sedang",
+    "low": "Rendah",
+    "none": "Tidak ada"
+  },
+  "summary": {
+    "total": "Total",
+    "critical": "Kritis",
+    "high": "Tinggi",
+    "medium": "Sedang",
+    "low": "Rendah"
+  },
+  "filter": {
+    "all": "Semua",
+    "searchPlaceholder": "Cari berdasarkan nama aplikasi atau ID CVE...",
+    "noResults": "Tidak ada kerentanan yang cocok dengan filter saat ini"
+  },
+  "error": {
+    "title": "Gagal Memuat Kerentanan",
+    "description": "Tidak dapat mengambil data kerentanan dari server. Coba segarkan atau periksa koneksi cloud Anda."
+  },
+  "card": {
+    "installed": "Terinstal: {{version}}",
+    "fixAvailable": "Perbaikan: {{version}}",
+    "noFix": "Tidak ada perbaikan yang tersedia",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Pertama kali terdeteksi: {{date}}",
+    "lastScanned": "Terakhir dipindai: {{date}}",
+    "viewDetails": "Lihat Detail CVE",
+    "checkForUpdates": "Periksa Pembaruan"
+  },
+  "pagination": {
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "page": "Halaman {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "Gagal memuat data kerentanan",
+    "fetchFailedNotConnected": "Cloud Agent tidak terhubung"
+  }
+}

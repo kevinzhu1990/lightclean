@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Vulnerabilidades",
+  "pageDescription": "Ver vulnerabilidades conocidas detectadas en el software instalado",
+  "loading": "Cargando vulnerabilidades...",
+  "refetchButton": "Actualizar",
+  "cloudNotConfigured": {
+    "title": "Se requiere Cloud Agent",
+    "description": "El análisis de CVE requiere que Cloud Agent esté vinculado. Vaya a Configuración → Cloud para conectar su dispositivo."
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent no está conectado",
+    "description": "Cloud Agent no está conectado actualmente. Compruebe su conexión en Configuración → Cloud."
+  },
+  "emptyState": {
+    "title": "No se detectaron vulnerabilidades",
+    "description": "No se encontraron CVE conocidas en el software instalado. ¡Su sistema parece seguro!"
+  },
+  "severity": {
+    "critical": "Crítica",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja",
+    "none": "Ninguna"
+  },
+  "summary": {
+    "total": "Total",
+    "critical": "Crítica",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja"
+  },
+  "filter": {
+    "all": "Todas",
+    "searchPlaceholder": "Buscar por nombre de aplicación o ID de CVE...",
+    "noResults": "Ninguna vulnerabilidad coincide con los filtros actuales"
+  },
+  "error": {
+    "title": "No se pudieron cargar las vulnerabilidades",
+    "description": "No se pudieron obtener los datos de vulnerabilidades del servidor. Intente actualizar o compruebe su conexión en la nube."
+  },
+  "card": {
+    "installed": "Instalada: {{version}}",
+    "fixAvailable": "Corrección: {{version}}",
+    "noFix": "No hay corrección disponible",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "Detectada por primera vez: {{date}}",
+    "lastScanned": "Último análisis: {{date}}",
+    "viewDetails": "Ver detalles de la CVE",
+    "checkForUpdates": "Buscar actualizaciones"
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "page": "Página {{current}}"
+  },
+  "toast": {
+    "fetchFailed": "No se pudieron cargar los datos de vulnerabilidades",
+    "fetchFailedNotConnected": "Cloud Agent no está conectado"
+  }
+}

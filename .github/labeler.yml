@@ -1,0 +1,42 @@
+cleaner-rules:
+  - changed-files:
+      - any-glob-to-any-file: rules/**
+
+electron:
+  - changed-files:
+      - any-glob-to-any-file: src/main/**
+
+ui:
+  - changed-files:
+      - any-glob-to-any-file: src/renderer/**
+
+preload:
+  - changed-files:
+      - any-glob-to-any-file: src/preload/**
+
+shared:
+  - changed-files:
+      - any-glob-to-any-file: src/shared/**
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: .github/**
+
+build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - electron-builder.yml
+          - electron.vite.config.*
+          - vite.config.*
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - LICENSE
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - package-lock.json

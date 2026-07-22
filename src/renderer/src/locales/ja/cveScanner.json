@@ -1,0 +1,60 @@
+{
+  "pageTitle": "脆弱性",
+  "pageDescription": "インストールされているソフトウェアで検出された既知の脆弱性を表示します",
+  "loading": "脆弱性を読み込み中...",
+  "refetchButton": "更新",
+  "cloudNotConfigured": {
+    "title": "Cloud Agent が必要です",
+    "description": "CVE スキャンを実行するには、Cloud Agent をリンクする必要があります。設定 → Cloud に移動してデバイスを接続してください。"
+  },
+  "cloudNotConnected": {
+    "title": "Cloud Agent が接続されていません",
+    "description": "Cloud Agent は現在接続されていません。設定 → Cloud で接続を確認してください。"
+  },
+  "emptyState": {
+    "title": "脆弱性は検出されませんでした",
+    "description": "インストールされているソフトウェアで既知の CVE は見つかりませんでした。システムは安全な状態です。"
+  },
+  "severity": {
+    "critical": "重大",
+    "high": "高",
+    "medium": "中",
+    "low": "低",
+    "none": "なし"
+  },
+  "summary": {
+    "total": "合計",
+    "critical": "重大",
+    "high": "高",
+    "medium": "中",
+    "low": "低"
+  },
+  "filter": {
+    "all": "すべて",
+    "searchPlaceholder": "アプリ名または CVE ID で検索...",
+    "noResults": "現在のフィルターに一致する脆弱性はありません"
+  },
+  "error": {
+    "title": "脆弱性の読み込みに失敗しました",
+    "description": "サーバーから脆弱性データを取得できませんでした。更新するか、Cloud 接続を確認してください。"
+  },
+  "card": {
+    "installed": "インストール済み: {{version}}",
+    "fixAvailable": "修正: {{version}}",
+    "noFix": "利用可能な修正はありません",
+    "cvss": "CVSS {{score}}",
+    "firstDetected": "初回検出: {{date}}",
+    "lastScanned": "最終スキャン: {{date}}",
+    "viewDetails": "CVE の詳細を表示",
+    "checkForUpdates": "更新プログラムを確認"
+  },
+  "pagination": {
+    "previous": "前へ",
+    "next": "次へ",
+    "page": "{{current}} ページ"
+  },
+  "toast": {
+    "fetchFailed": "脆弱性データの読み込みに失敗しました",
+    "fetchFailedNotConnected": "Cloud Agent が接続されていません"
+  }
+}

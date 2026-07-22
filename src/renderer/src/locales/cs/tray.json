@@ -1,0 +1,10 @@
+{
+  "trayTooltip": "LightClean",
+  "openLightClean": "Otevřít LightClean",
+  "quit": "Ukončit",
+  "scheduledTaskNotificationTitle": "LightClean – Naplánovaná úloha",
+  "scheduledTaskNotificationBody": "Spouští se „{{name}}“…",
+  "scanCompleteNotificationTitle": "LightClean – Kontrola dokončena",
+  "scanCompleteNotificationBody": "Bylo nalezeno {{itemCount}} položek ({{sizeMB}} MB), které lze vyčistit.",
+  "scheduledScanName": "Naplánovaná kontrola"
+}

@@ -36,6 +36,11 @@ import type { CleaningSafetyLevel, ScanResult } from '@shared/types'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import {
+  getElevationCategoryKey,
+  getElevationCategorySeparator,
+  getElevationNotice,
+} from './cleaner-elevation'
 
 /** Check whether a path looks like an absolute filesystem path (not a label like "Recycle Bin" or "PATH → …"). */
 const isAbsolutePath = (p: string) => /^[A-Za-z]:[\\/]/.test(p) || p.startsWith('/')
@@ -111,6 +116,12 @@ export function CleanerPage({ diskCleanup = false }: CleanerPageProps) {
 
   const [failedCategories, setFailedCategories] = useState<string[]>([])
   const [elevationSkipped, setElevationSkipped] = useState<string[]>([])
+  const elevationNotice = getElevationNotice(platform)
+  const elevationCategorySeparator = getElevationCategorySeparator(platform)
+  const localizedElevationSkipped = elevationSkipped.map((category) => {
+    const key = getElevationCategoryKey(category)
+    return key ? t(key) : category
+  })
 
   const handleRelaunch = useCallback(() => {
     window.lightclean.elevationRelaunch()
@@ -430,14 +441,19 @@ export function CleanerPage({ diskCleanup = false }: CleanerPageProps) {
               <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" strokeWidth={1.8} />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] text-zinc-300">
-                  <span className="font-medium">{t('categoriesSkipped', { count: elevationSkipped.length })}</span>
-                  <span style={{ color: 'var(--text-muted)' }}> {t('categoriesSkippedSuffix')}</span>
+                  <span className="font-medium">{t(elevationNotice.titleKey, { count: elevationSkipped.length })}</span>
+                  <span style={{ color: 'var(--text-muted)' }}> {t(elevationNotice.suffixKey)}</span>
                 </p>
                 <p className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                  {elevationSkipped.slice(0, 4).join(', ')}{elevationSkipped.length > 4 ? ` ${t('categoriesSkippedMore', { count: elevationSkipped.length - 4 })}` : ''}
+                  {localizedElevationSkipped.slice(0, 4).join(elevationCategorySeparator)}{elevationSkipped.length > 4 ? ` ${t('categoriesSkippedMore', { count: elevationSkipped.length - 4 })}` : ''}
                 </p>
+                {elevationNotice.helpKey && (
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    {t(elevationNotice.helpKey)}
+                  </p>
+                )}
               </div>
-              {platform !== 'darwin' && (
+              {elevationNotice.canRelaunch && (
                 <button
                   onClick={handleRelaunch}
                   className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/15"

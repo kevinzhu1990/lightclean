@@ -657,11 +657,14 @@ export interface SmartAttribute {
 }
 
 // ─── Auto-Updater ────────────────────────────────────────────
+export type UpdateErrorCode = 'source-unavailable' | 'network' | 'unknown'
+
 export interface UpdateStatus {
   state: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
   version?: string
   progress?: number
   error?: string
+  errorCode?: UpdateErrorCode
 }
 
 // ─── Program Uninstaller ────────────────────────────────────

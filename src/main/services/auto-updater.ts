@@ -3,6 +3,7 @@ import { autoUpdater } from 'electron-updater'
 import { IPC } from '../../shared/channels'
 import { getSettings } from './settings-store'
 import type { UpdateStatus } from '../../shared/types'
+import { getSafeUpdateErrorCode } from './updater-error'
 
 let status: UpdateStatus = { state: 'idle' }
 let daemonMode = false
@@ -83,7 +84,7 @@ export function initAutoUpdater(opts: InitOptions = {}): void {
   })
 
   autoUpdater.on('error', (err) => {
-    broadcast({ state: 'error', error: err?.message || 'Update failed' })
+    broadcast({ state: 'error', errorCode: getSafeUpdateErrorCode(err) })
   })
 
   // Check on startup

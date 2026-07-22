@@ -9,6 +9,11 @@ declare const __APP_VERSION__: string
 export function AboutPage() {
   const { t } = useTranslation('settings')
   const updateStatus = useAppUpdateStore((s) => s.status)
+  const updateErrorMessage = updateStatus.errorCode === 'source-unavailable'
+    ? t('updateSourceUnavailable')
+    : updateStatus.errorCode === 'network'
+      ? t('updateNetworkError')
+      : t('updateCheckFailed')
 
   return (
     <div className="animate-fade-in">
@@ -86,7 +91,7 @@ export function AboutPage() {
             <>
               <span className="flex items-center gap-2 text-[12px] text-red-400">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                {updateStatus.error}
+                {updateErrorMessage}
               </span>
               <button
                 onClick={() => window.lightclean?.updaterCheck?.()}

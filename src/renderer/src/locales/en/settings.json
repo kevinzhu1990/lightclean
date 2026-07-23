@@ -74,7 +74,7 @@
   "downloading": "Downloading... {{progress}}%",
   "restartAndInstall": "Restart & Install v{{version}}",
   "retry": "Retry",
-  "updateSourceUnavailable": "The update source is unavailable or has no public release yet.",
+  "updateSourceUnavailable": "The update server is not public yet or the release files are incomplete. Try again later or contact the publisher.",
   "updateNetworkError": "The network connection failed. Check your connection and try again.",
   "updateCheckFailed": "Unable to check for updates right now. Please try again later.",
   "github": "GitHub",

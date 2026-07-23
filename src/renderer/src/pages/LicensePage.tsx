@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   CalendarDays,
   Check,
+  ClipboardCopy,
   Clock3,
   KeyRound,
   Laptop,
@@ -43,29 +44,28 @@ function formatDate(value: string | null): string {
 function statusTone(status: LicenseStatus | null): { label: string; color: string; background: string } {
   if (!status) return { label: '正在读取', color: 'var(--text-muted)', background: 'var(--bg-subtle)' }
   if (status.state === 'trial') return { label: '免费试用中', color: '#2563eb', background: 'rgba(59,130,246,.10)' }
-  if (status.state === 'active') return { label: '授权有效', color: '#16a34a', background: 'rgba(34,197,94,.10)' }
-  if (status.state === 'grace') return { label: '离线宽限期', color: '#b45309', background: 'rgba(245,158,11,.12)' }
+  if (status.state === 'active') return { label: '离线授权有效', color: '#16a34a', background: 'rgba(34,197,94,.10)' }
   if (status.state === 'expired') return { label: '已到期', color: '#dc2626', background: 'rgba(239,68,68,.10)' }
   return { label: '需要激活', color: '#b45309', background: 'rgba(245,158,11,.12)' }
 }
 
 export function LicensePage() {
   const [status, setStatus] = useState<LicenseStatus | null>(null)
-  const [code, setCode] = useState('')
+  const [activationCode, setActivationCode] = useState('')
   const [loading, setLoading] = useState(true)
   const [redeeming, setRedeeming] = useState(false)
   const tone = useMemo(() => statusTone(status), [status])
 
-  const load = async (refresh = false) => {
+  const load = async (showMessage = false) => {
     setLoading(true)
     try {
-      const next = refresh
+      const next = showMessage
         ? await window.lightclean.licenseRefresh()
         : await window.lightclean.licenseStatus()
       setStatus(next)
-      if (refresh) toast.success('授权状态已更新')
+      if (showMessage) toast.success('本机授权校验完成')
     } catch {
-      toast.error('无法读取授权状态，请重新打开软件后再试。')
+      toast.error('无法读取本机授权，请重新打开软件后再试。')
     } finally {
       setLoading(false)
     }
@@ -73,40 +73,52 @@ export function LicensePage() {
 
   useEffect(() => { void load(false) }, [])
 
-  const redeem = async () => {
-    if (!code.trim()) {
-      toast.error('请输入购买后收到的兑换码。')
+  const copyRequestCode = async () => {
+    if (!status?.deviceRequestCode) return
+    try {
+      await navigator.clipboard.writeText(status.deviceRequestCode)
+      toast.success('设备申请码已复制，请发送给卖家。')
+    } catch {
+      toast.error('复制失败，请手动选择并复制设备申请码。')
+    }
+  }
+
+  const activate = async () => {
+    if (!activationCode.trim()) {
+      toast.error('请输入卖家发给您的本机激活码。')
       return
     }
     setRedeeming(true)
     try {
-      const result = await window.lightclean.licenseRedeem(code)
+      const result = await window.lightclean.licenseRedeem(activationCode)
       setStatus(result.status)
       if (result.success) {
-        setCode('')
-        toast.success('兑换成功，轻净已完成激活。')
+        setActivationCode('')
+        toast.success('激活成功，轻净现在可完全离线使用。')
       } else {
-        toast.error(result.error ?? '兑换失败，请稍后重试。')
+        toast.error(result.error ?? '激活失败，请检查激活码。')
       }
     } catch {
-      toast.error('无法连接授权服务，请检查网络后重试。')
+      toast.error('激活失败，请确认激活码完整且属于当前电脑。')
     } finally {
       setRedeeming(false)
     }
   }
 
   const deactivate = async () => {
-    if (!confirm('确定解绑当前电脑吗？解绑后，本机将不能继续使用付费功能。')) return
+    if (!confirm('确定移除当前电脑上的授权吗？移除后本机将不能继续使用付费功能。')) return
     const result = await window.lightclean.licenseDeactivate()
     setStatus(result.status)
-    result.success ? toast.success('当前电脑已解绑。') : toast.error(result.error ?? '解绑失败。')
+    result.success
+      ? toast.success('本机授权已移除。换电脑使用请联系卖家重新签发。')
+      : toast.error(result.error ?? '移除授权失败。')
   }
 
   return (
     <div className="animate-fade-in">
       <PageHeader
         title="授权与套餐"
-        description="查看试用期、套餐价格、兑换码和设备绑定状态"
+        description="查看试用期、套餐价格、设备申请码、激活码和到期时间"
         action={(
           <button
             onClick={() => void load(true)}
@@ -115,7 +127,7 @@ export function LicensePage() {
             style={{ border: '1px solid var(--border-medium)', color: 'var(--text-secondary)' }}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            刷新授权
+            校验本机授权
           </button>
         )}
       />
@@ -155,37 +167,57 @@ export function LicensePage() {
 
           <div className="mt-6 rounded-2xl p-5"
             style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-medium)' }}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Laptop className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                <h3 className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>第一步：复制设备申请码</h3>
+              </div>
+              <button onClick={() => void copyRequestCode()}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-medium"
+                style={{ border: '1px solid var(--border-medium)', color: 'var(--text-secondary)' }}>
+                <ClipboardCopy className="h-3.5 w-3.5" /> 复制申请码
+              </button>
+            </div>
+            <textarea
+              readOnly
+              value={status?.deviceRequestCode ?? ''}
+              onFocus={(event) => event.currentTarget.select()}
+              className="h-20 w-full resize-none rounded-xl p-3 font-mono text-[11px] outline-none"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
+            />
+            <p className="mt-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              将申请码和购买兑换码一起发送给卖家。申请码不包含姓名、聊天记录或文件内容。
+            </p>
+          </div>
+
+          <div className="mt-4 rounded-2xl p-5"
+            style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-medium)' }}>
             <div className="mb-3 flex items-center gap-2">
               <KeyRound className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-              <h3 className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>兑换激活码</h3>
+              <h3 className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>第二步：输入本机激活码</h3>
             </div>
-            <div className="flex gap-3">
-              <input
-                value={code}
-                onChange={(event) => setCode(event.target.value.toUpperCase())}
-                onKeyDown={(event) => { if (event.key === 'Enter') void redeem() }}
-                placeholder="请输入购买后收到的兑换码"
-                spellCheck={false}
-                className="min-w-0 flex-1 rounded-xl px-4 py-3 font-mono text-[13px] outline-none"
-                style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--border-strong)',
-                  color: 'var(--text-primary)',
-                }}
-              />
+            <textarea
+              value={activationCode}
+              onChange={(event) => setActivationCode(event.target.value.trim())}
+              placeholder="粘贴卖家根据本机设备申请码生成的 LC-ACT-… 激活码"
+              spellCheck={false}
+              className="h-24 w-full resize-none rounded-xl p-3 font-mono text-[11px] outline-none"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
+            />
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                激活和后续使用均不需要联网；激活码仅适用于当前电脑。
+              </p>
               <button
-                onClick={() => void redeem()}
+                onClick={() => void activate()}
                 disabled={redeeming}
                 className="flex min-w-[112px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-[13px] font-semibold"
                 style={{ background: 'var(--accent)', color: 'var(--text-on-accent)' }}
               >
                 {redeeming ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                立即兑换
+                立即激活
               </button>
             </div>
-            <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              一码绑定1台电脑；每12个月可换绑2次。首次激活需要联网，之后可离线使用14天。
-            </p>
           </div>
         </section>
 
@@ -193,17 +225,18 @@ export function LicensePage() {
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5" style={{ color: '#22c55e' }} />
             <div>
-              <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>授权说明</h2>
-              <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>安装包可以分享，使用权由设备授权控制</p>
+              <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>离线授权说明</h2>
+              <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>不连接服务器，不上传任何电脑资料</p>
             </div>
           </div>
           <div className="mt-5 space-y-3">
             {[
-              '首次安装免费使用全部功能30天',
-              '兑换码激活后绑定当前电脑',
-              '到期不会删除文件或清理记录',
-              '换电脑前可先解绑当前设备',
-              '授权验证只上传匿名设备摘要',
+              '首次安装可免费使用全部功能30天',
+              '购买兑换码由卖家签发为本机激活码',
+              '激活后无需联网，可一直离线使用',
+              '安装包可以分享，但激活码不能跨电脑使用',
+              '到期不会自动删除文件或执行任何清理',
+              '更换电脑时，请联系卖家重新签发',
             ].map((item) => (
               <div key={item} className="flex items-center gap-2.5 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full"
@@ -218,14 +251,8 @@ export function LicensePage() {
             <button onClick={() => void deactivate()}
               className="mt-6 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-medium"
               style={{ border: '1px solid rgba(239,68,68,.25)', color: '#ef4444' }}>
-              <Unlink className="h-3.5 w-3.5" /> 解绑当前电脑
+              <Unlink className="h-3.5 w-3.5" /> 移除本机授权
             </button>
-          )}
-          {status && !status.serverConfigured && (
-            <div className="mt-5 rounded-xl px-4 py-3 text-[11px]"
-              style={{ background: 'rgba(245,158,11,.08)', color: '#b45309', border: '1px solid rgba(245,158,11,.18)' }}>
-              当前为本机试用模式。正式销售前需要配置授权服务地址，兑换码才可跨电脑验证。
-            </div>
           )}
         </section>
       </div>

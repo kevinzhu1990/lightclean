@@ -1,10 +1,10 @@
 {
-  "name": "lightclean-license-server",
+  "name": "lightclean-offline-license-issuer",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
+    "issue": "node offline-issuer.mjs",
     "codes": "node create-codes.mjs"
   },
   "dependencies": {

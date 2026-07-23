@@ -1,8 +1,9 @@
+import { verify } from 'crypto'
 import type { LicensePlan, LicenseState, LicenseStatus } from '../../shared/types'
 
 export const TRIAL_DAYS = 30
-export const VALIDATION_INTERVAL_DAYS = 7
-export const OFFLINE_GRACE_DAYS = 14
+export const ACTIVATION_PREFIX = 'LC-ACT-'
+export const REQUEST_PREFIX = 'LC-REQ-'
 
 export interface StoredLicense {
   plan: LicensePlan
@@ -10,7 +11,17 @@ export interface StoredLicense {
   expiresAt: string | null
   activationToken?: string
   maskedCode?: string
-  lastValidatedAt?: string
+  licenseId?: string
+}
+
+export interface OfflineActivationPayload {
+  v: 1
+  licenseId: string
+  deviceId: string
+  plan: Exclude<LicensePlan, 'trial'>
+  issuedAt: string
+  expiresAt: string | null
+  purchaseCodeHint: string
 }
 
 const PLAN_LABELS: Record<LicensePlan, string> = {
@@ -36,34 +47,27 @@ export function daysRemaining(expiresAt: string | null, now = new Date()): numbe
 export function buildLicenseStatus(
   stored: StoredLicense | null,
   deviceIdSuffix: string,
-  serverConfigured: boolean,
+  deviceRequestCode: string,
   now = new Date(),
   messageOverride?: string,
 ): LicenseStatus {
   if (!stored) {
     return {
-      state: serverConfigured ? 'needs_activation' : 'service_unavailable',
+      state: 'needs_activation',
       plan: null,
       planLabel: '未激活',
       expiresAt: null,
       daysRemaining: null,
       canUsePaidFeatures: false,
       deviceIdSuffix,
-      lastValidatedAt: null,
-      nextValidationAt: null,
-      offlineGraceEndsAt: null,
-      message: messageOverride ?? (serverConfigured
-        ? '请输入购买后收到的兑换码。'
-        : '授权服务尚未配置，请联系轻净客服。'),
-      serverConfigured,
+      message: messageOverride ?? '请复制设备申请码，向卖家换取本机激活码。',
+      deviceRequestCode,
+      activationMode: 'offline',
     }
   }
 
   const expiresAt = stored.expiresAt
   const expired = expiresAt ? new Date(expiresAt).getTime() <= now.getTime() : false
-  const lastValidated = stored.lastValidatedAt ? new Date(stored.lastValidatedAt) : null
-  const nextValidation = lastValidated ? addDays(lastValidated, VALIDATION_INTERVAL_DAYS) : null
-  const graceEnds = lastValidated ? addDays(lastValidated, OFFLINE_GRACE_DAYS) : null
   let state: LicenseState = stored.plan === 'trial' ? 'trial' : 'active'
   let allowed = true
   let message = stored.plan === 'trial'
@@ -74,15 +78,8 @@ export function buildLicenseStatus(
     state = 'expired'
     allowed = false
     message = stored.plan === 'trial'
-      ? '免费试用已结束，请输入兑换码继续使用。'
+      ? '免费试用已结束，请使用本机激活码继续使用。'
       : '当前套餐已到期，续费后即可继续使用。'
-  } else if (stored.activationToken && lastValidated && graceEnds && now > graceEnds) {
-    state = 'expired'
-    allowed = false
-    message = '已超过14天离线宽限期，请联网验证授权。'
-  } else if (stored.activationToken && nextValidation && now > nextValidation) {
-    state = 'grace'
-    message = '暂时无法连接授权服务，当前处于离线宽限期。'
   }
 
   return {
@@ -93,11 +90,9 @@ export function buildLicenseStatus(
     daysRemaining: daysRemaining(expiresAt, now),
     canUsePaidFeatures: allowed,
     deviceIdSuffix,
-    lastValidatedAt: stored.lastValidatedAt ?? null,
-    nextValidationAt: nextValidation?.toISOString() ?? null,
-    offlineGraceEndsAt: graceEnds?.toISOString() ?? null,
     message: messageOverride ?? message,
-    serverConfigured,
+    deviceRequestCode,
+    activationMode: 'offline',
   }
 }
 
@@ -105,3 +100,73 @@ export function normalizeRedemptionCode(value: string): string {
   return value.trim().toUpperCase().replace(/[\s_]+/g, '-')
 }
 
+function isPaidPlan(value: unknown): value is Exclude<LicensePlan, 'trial'> {
+  return value === 'quarter'
+    || value === 'half_year'
+    || value === 'annual'
+    || value === 'lifetime'
+}
+
+export function createDeviceRequestCode(
+  deviceId: string,
+  platform: string,
+  arch: string,
+  appVersion: string,
+): string {
+  const payload = {
+    v: 1,
+    deviceId,
+    deviceSuffix: deviceId.slice(-8).toUpperCase(),
+    platform,
+    arch,
+    appVersion,
+  }
+  return `${REQUEST_PREFIX}${Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')}`
+}
+
+export function verifyOfflineActivation(
+  rawToken: string,
+  expectedDeviceId: string,
+  publicKeyPem: string,
+  now = new Date(),
+): { success: true; payload: OfflineActivationPayload } | { success: false; error: string } {
+  const token = rawToken.trim()
+  if (!token.startsWith(ACTIVATION_PREFIX)) {
+    return { success: false, error: '激活码格式不正确，请完整复制卖家发给您的激活码。' }
+  }
+  const parts = token.slice(ACTIVATION_PREFIX.length).split('.')
+  if (parts.length !== 2 || parts.some((part) => !part || part.length > 4096)) {
+    return { success: false, error: '激活码格式不正确，请完整复制卖家发给您的激活码。' }
+  }
+  try {
+    const payloadBytes = Buffer.from(parts[0], 'base64url')
+    const signature = Buffer.from(parts[1], 'base64url')
+    if (!verify(null, payloadBytes, publicKeyPem, signature)) {
+      return { success: false, error: '激活码签名无效，请联系卖家重新生成。' }
+    }
+    const value = JSON.parse(payloadBytes.toString('utf8')) as Partial<OfflineActivationPayload>
+    if (
+      value.v !== 1
+      || typeof value.licenseId !== 'string'
+      || typeof value.deviceId !== 'string'
+      || !isPaidPlan(value.plan)
+      || typeof value.issuedAt !== 'string'
+      || !(typeof value.expiresAt === 'string' || value.expiresAt === null)
+      || typeof value.purchaseCodeHint !== 'string'
+    ) {
+      return { success: false, error: '激活码内容不完整，请联系卖家重新生成。' }
+    }
+    if (value.deviceId !== expectedDeviceId) {
+      return { success: false, error: '该激活码属于其他电脑，请发送本机设备申请码重新获取。' }
+    }
+    if (Number.isNaN(new Date(value.issuedAt).getTime())) {
+      return { success: false, error: '激活码日期无效，请联系卖家重新生成。' }
+    }
+    if (value.expiresAt && new Date(value.expiresAt).getTime() <= now.getTime()) {
+      return { success: false, error: '该激活码对应的套餐已到期，请续费后重新获取。' }
+    }
+    return { success: true, payload: value as OfflineActivationPayload }
+  } catch {
+    return { success: false, error: '激活码无法读取，请完整复制后重试。' }
+  }
+}

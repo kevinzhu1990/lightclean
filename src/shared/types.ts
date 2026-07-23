@@ -17,10 +17,8 @@ export type LicensePlan = 'trial' | 'quarter' | 'half_year' | 'annual' | 'lifeti
 export type LicenseState =
   | 'trial'
   | 'active'
-  | 'grace'
   | 'expired'
   | 'needs_activation'
-  | 'service_unavailable'
 
 export interface LicenseStatus {
   state: LicenseState
@@ -30,11 +28,9 @@ export interface LicenseStatus {
   daysRemaining: number | null
   canUsePaidFeatures: boolean
   deviceIdSuffix: string
-  lastValidatedAt: string | null
-  nextValidationAt: string | null
-  offlineGraceEndsAt: string | null
   message: string
-  serverConfigured: boolean
+  deviceRequestCode: string
+  activationMode: 'offline'
 }
 
 export interface LicenseActionResult {

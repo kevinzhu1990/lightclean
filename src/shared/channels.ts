@@ -182,6 +182,12 @@ export const IPC = {
   // Computer Configuration
   COMPUTER_CONFIG_GET: 'computer-config:get',
 
+  // License and redemption
+  LICENSE_STATUS: 'license:status',
+  LICENSE_REDEEM: 'license:redeem',
+  LICENSE_REFRESH: 'license:refresh',
+  LICENSE_DEACTIVATE: 'license:deactivate',
+
   // Auto-updater
   UPDATER_CHECK: 'updater:check',
   UPDATER_DOWNLOAD: 'updater:download',

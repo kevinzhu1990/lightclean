@@ -12,6 +12,37 @@ export interface PlatformInfo {
   }
 }
 
+export type LicensePlan = 'trial' | 'quarter' | 'half_year' | 'annual' | 'lifetime'
+
+export type LicenseState =
+  | 'trial'
+  | 'active'
+  | 'grace'
+  | 'expired'
+  | 'needs_activation'
+  | 'service_unavailable'
+
+export interface LicenseStatus {
+  state: LicenseState
+  plan: LicensePlan | null
+  planLabel: string
+  expiresAt: string | null
+  daysRemaining: number | null
+  canUsePaidFeatures: boolean
+  deviceIdSuffix: string
+  lastValidatedAt: string | null
+  nextValidationAt: string | null
+  offlineGraceEndsAt: string | null
+  message: string
+  serverConfigured: boolean
+}
+
+export interface LicenseActionResult {
+  success: boolean
+  status: LicenseStatus
+  error?: string
+}
+
 export interface ScanHistoryCategory {
   name: string
   itemsFound: number

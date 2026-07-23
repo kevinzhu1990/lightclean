@@ -9,3 +9,8 @@ cloud/
 CLOUD-COMMANDS.md
 manifests/
 resources/yara-rules/
+license-server/data/
+license-server/.env
+license-server/*.db
+license-server/*.db-shm
+license-server/*.db-wal

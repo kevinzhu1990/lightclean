@@ -34,6 +34,7 @@ import { FirewallAuditPage } from './pages/FirewallAuditPage'
 import { SchedulesPage } from './pages/SchedulesPage'
 import { GameModePage } from './pages/GameModePage'
 import { AboutPage } from './pages/AboutPage'
+import { LicensePage } from './pages/LicensePage'
 import { WeChatCleanerPage } from './pages/WeChatCleanerPage'
 import { RecycleBinPage } from './pages/RecycleBinPage'
 import { Onboarding } from './components/Onboarding'
@@ -163,6 +164,7 @@ export function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/license" element={<LicensePage />} />
           <Route path="/cloud" element={<Navigate to="/" replace />} />
           <Route path="/breach-monitor" element={<Navigate to="/" replace />} />
           {/* Standalone pages */}
@@ -225,6 +227,7 @@ const ROUTE_TITLES: Record<string, { key: string; ns?: string } | string> = {
   '/uninstaller': '软件卸载',
   '/history': { key: 'history' },
   '/settings': { key: 'settings' },
+  '/license': '授权与套餐',
   '/about': '关于与更新',
   '/privacy': '隐私保护',
   '/services': '系统服务',

@@ -1,6 +1,6 @@
 {
   "name": "lightclean",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "轻净 LightClean — a cross-platform system cleaner and privacy tool with safe WeChat history cleanup",
   "main": "./out/main/index.js",
   "scripts": {

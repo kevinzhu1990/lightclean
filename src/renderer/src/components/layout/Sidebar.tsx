@@ -127,7 +127,6 @@ const navGroups: NavGroup[] = [
         children: [
           { icon: Trash2, label: '磁盘清理', path: '/disk-cleanup' },
           { icon: Trash2, label: '清空回收站', path: '/recycle-bin' },
-          { icon: PackageMinus, label: '软件卸载', path: '/uninstaller' },
           { icon: HardDrive, label: '磁盘分析', path: '/disk' },
           { icon: CopyCheck, label: '重复文件查找', path: '/duplicates' },
           { icon: FileUp, label: '大文件查找', path: '/large-files' },

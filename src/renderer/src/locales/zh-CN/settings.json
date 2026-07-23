@@ -74,7 +74,7 @@
   "downloading": "正在下载... {{progress}}%",
   "restartAndInstall": "重启并安装 v{{version}}",
   "retry": "重试",
-  "updateSourceUnavailable": "当前更新源不可用，可能尚未公开发布版本。",
+  "updateSourceUnavailable": "更新服务器尚未公开，或发布文件不完整。请稍后重试或联系发布者。",
   "updateNetworkError": "网络连接失败，请检查网络后重试。",
   "updateCheckFailed": "暂时无法检查更新，请稍后重试。",
   "github": "GitHub",

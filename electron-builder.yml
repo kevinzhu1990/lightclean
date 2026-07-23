@@ -6,6 +6,14 @@ directories:
   buildResources: resources
   output: dist
 
+publish:
+  provider: github
+  owner: kevinzhu1990
+  repo: lightclean
+  private: false
+  releaseType: release
+  channel: latest
+
 files:
   - out/**/*
 

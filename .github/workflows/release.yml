@@ -32,6 +32,15 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          test "v${PACKAGE_VERSION}" = "${GITHUB_REF_NAME}" || {
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package version v${PACKAGE_VERSION}"
+            exit 1
+          }
       - name: Test
         run: npm test
       - name: Package
@@ -42,6 +51,8 @@ jobs:
           name: lightclean-${{ runner.os }}
           path: |
             dist/*.exe
+            dist/*.blockmap
+            dist/latest*.yml
             dist/*.dmg
             dist/*.zip
             dist/*.AppImage
@@ -61,4 +72,4 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" release-assets/* --title "轻净 LightClean ${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" release-assets/* --verify-tag --title "轻净 LightClean ${{ github.ref_name }}" --generate-notes

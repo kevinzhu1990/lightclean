@@ -8,6 +8,9 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     reporters: ['verbose'],
     pool: 'threads',
+    // GitHub's Windows runner can terminate the test process when Vitest
+    // starts too many workers alongside native/WASM modules.
+    maxWorkers: 2,
   },
   resolve: {
     alias: {

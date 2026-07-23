@@ -26,8 +26,8 @@ extraResources:
     to: icons
     filter:
       - "**/*"
-  - from: resources/license-config.json
-    to: license-config.json
+  - from: resources/offline-license-public-key.pem
+    to: offline-license-public-key.pem
 
 win:
   target:

@@ -1,32 +1,34 @@
-# 轻净兑换码服务
+# 轻净离线授权工具
 
-该服务为轻净提供30天试用、兑换码、单设备绑定、到期验证和设备解绑。
+轻净采用“购买兑换码 + 设备申请码 + 本机激活码”的完全离线授权方式：
 
-## 本地启动
+1. 买家在轻净“授权与套餐”页面复制设备申请码。
+2. 卖家运行 `发放激活码.bat`，输入购买兑换码和设备申请码。
+3. 工具核对本地兑换码数据库，用本地私钥签名，并把激活码复制到剪贴板。
+4. 买家粘贴激活码后即可离线使用，软件不会连接授权服务器。
 
-```powershell
-npm install
-$env:LIGHTCLEAN_LICENSE_ADMIN_TOKEN='请替换为随机长密码'
-npm start
+## 私钥安全
+
+- 私钥必须放在仓库外，绝不能提交到 GitHub、飞书或发给买家。
+- 软件只包含公钥。公钥只能验证，不能生成激活码。
+- 建议至少备份两份私钥到加密U盘；私钥丢失后无法为现有兑换码重新签发。
+
+默认本机路径：
+
+```text
+D:\Documents\轻净软件\轻净离线授权私钥\lightclean-ed25519-private.pem
 ```
 
-默认监听 `3210` 端口，数据库位于 `license-server/data/licenses.db`。
+可使用环境变量 `LIGHTCLEAN_PRIVATE_KEY` 和 `LIGHTCLEAN_LICENSE_DB` 指定其他位置。
 
-## 生成兑换码
+## 命令行用法
 
 ```powershell
-npm run codes -- quarter 10
-npm run codes -- half_year 10
-npm run codes -- annual 10
-npm run codes -- lifetime 10
+node offline-issuer.mjs --code "购买兑换码" --request "LC-REQ-..." --copy
 ```
 
-生成结果只显示一次。数据库仅保存兑换码哈希，必须将原始兑换码保存到安全的订单管理系统。
+同一兑换码重复给同一台电脑签发不会延长套餐时间。兑换码已经绑定其他电脑时会拒绝；确认售后换机后，可额外加入 `--rebind`，每个自然年最多换绑2次。
 
-## 正式部署
+## 数据库
 
-- 必须使用HTTPS。
-- 设置 `LIGHTCLEAN_LICENSE_DB` 到持久化磁盘。
-- 设置高强度 `LIGHTCLEAN_LICENSE_ADMIN_TOKEN`，不要提交到GitHub。
-- 用反向代理限制请求频率并保存错误日志。
-- 将公网地址写入 `resources/license-config.json` 的 `apiUrl` 后重新构建客户端。
+兑换码数据库只保存购买兑换码的 SHA-256 摘要，默认位于 `data/licenses.db`。数据库和私钥均已被 `.gitignore` 排除。

@@ -34,7 +34,8 @@
     "optimization"
   ],
   "author": {
-    "name": "LightClean Contributors"
+    "name": "LightClean Contributors",
+    "email": "kevinzhu1990@users.noreply.github.com"
   },
   "license": "MIT",
   "repository": {

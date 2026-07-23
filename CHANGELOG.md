@@ -694,3 +694,10 @@
 
 * make isValidAppId tests platform-aware ([1c446d1](https://github.com/AdventDevInc/kudu/commit/1c446d1fd1c64e9c746e178662e036eac9feccec))
 * relaunch-as-admin not quitting when tray is active, update logo ([484f939](https://github.com/AdventDevInc/kudu/commit/484f939b1647a026d25ce5fbd4ff71bffdc60ef5))
+# 1.3.0
+
+- 新增独立“授权与套餐”页面，显示试用期、套餐价格、兑换码、到期时间和设备状态。
+- 新增30天免费试用、季度/半年/一年/买断版授权模型。
+- 新增兑换码服务、单设备绑定、每年2次换绑及14天离线宽限期。
+- 付费操作在试用或套餐到期后要求先完成激活，扫描与查看功能保持可用。
+- 授权服务数据库与管理密钥不进入公开仓库，正式构建从GitHub仓库变量注入服务地址。

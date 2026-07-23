@@ -40,6 +40,7 @@ import { registerBreachMonitorIpc } from './breach-monitor.ipc'
 import { registerStartupSafetyIpc } from './startup-safety.ipc'
 import { registerProgramSafetyIpc } from './program-safety.ipc'
 import { registerWeChatCleanerIpc } from './wechat-cleaner.ipc'
+import { registerLicenseIpc } from './license.ipc'
 import { getSettings, setSettings, flushSettings, getOnboardingComplete, setOnboardingComplete, getDataDir } from '../services/settings-store'
 import { getRulePackStatus, installRulePackDirectory, rollbackRulePack } from '../rules/rule-pack-store'
 import { getBackupDir } from '../services/backup-dir'
@@ -89,6 +90,7 @@ export function registerCleanerIpc(getWindow: WindowGetter): void {
   registerFileShredderIpc(getWindow)
   registerGameModeIpc(getWindow)
   registerWeChatCleanerIpc(getWindow)
+  registerLicenseIpc()
 
   // Cleaner: open file/folder location in system file manager
   ipcMain.handle(IPC.CLEANER_OPEN_LOCATION, (_event, filePath: unknown) => {

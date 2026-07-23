@@ -26,6 +26,8 @@ extraResources:
     to: icons
     filter:
       - "**/*"
+  - from: resources/license-config.json
+    to: license-config.json
 
 win:
   target:

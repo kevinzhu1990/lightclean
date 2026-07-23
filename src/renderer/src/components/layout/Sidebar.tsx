@@ -37,6 +37,7 @@ import {
   MousePointerClick,
   MessageCircle,
   Laptop,
+  KeyRound,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -61,6 +62,7 @@ interface SubItemDef {
 interface NavItemDef {
   icon: LucideIcon
   labelKey: string
+  label?: string
   path: string
   children?: SubItemDef[]
 }
@@ -146,6 +148,7 @@ function useBottomNavItems(): NavItemDef[] {
   const showUpdateBadge = updateState === 'available' || updateState === 'downloaded'
 
   return [
+    { icon: KeyRound, labelKey: 'license', label: '授权与套餐', path: '/license' },
     {
       icon: Settings, labelKey: 'settings', path: '/settings',
       children: [
@@ -414,7 +417,7 @@ function NavItem({
           strokeWidth={isActive ? 2 : 1.7}
           aria-hidden="true"
         />
-        <span className="flex-1 text-left">{t(item.labelKey)}</span>
+        <span className="flex-1 text-left">{item.label ?? t(item.labelKey)}</span>
         {(badge || (badgeCount != null && badgeCount > 0)) && (
           <span
             className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none"

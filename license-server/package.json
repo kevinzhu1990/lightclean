@@ -1,0 +1,13 @@
+{
+  "name": "lightclean-license-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "codes": "node create-codes.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1"
+  }
+}

@@ -39,6 +39,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Package smoke test
+        run: npm run package:dir
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
       - name: CLI smoke test
         run: bash scripts/cli-smoke-test.sh
         timeout-minutes: 5

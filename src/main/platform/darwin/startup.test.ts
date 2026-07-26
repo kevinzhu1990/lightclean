@@ -23,9 +23,6 @@ vi.mock('fs', () => ({
 vi.mock('os', () => ({
   homedir: () => '/Users/TestUser',
 }))
-vi.mock('crypto', () => ({
-  randomUUID: () => 'test-uuid-1234',
-}))
 
 const { createDarwinStartup } = await import('./startup')
 
@@ -125,7 +122,12 @@ describe('darwin startup', () => {
       existsSyncMock.mockReturnValue(false)
       execFileMock.mockImplementation((cmd: string) => {
         if (cmd === '/usr/bin/osascript') {
-          return Promise.resolve({ stdout: 'Spotify, Docker' })
+          return Promise.resolve({
+            stdout: JSON.stringify([
+              { name: 'Spotify', path: '/Applications/Spotify.app' },
+              { name: 'Docker', path: '/Applications/Docker.app' },
+            ]),
+          })
         }
         return Promise.reject(new Error('skip'))
       })
@@ -134,7 +136,21 @@ describe('darwin startup', () => {
       expect(items).toHaveLength(2)
       expect(items[0].name).toBe('Spotify')
       expect(items[0].source).toBe('login-item')
+      expect(items[0].command).toBe('/Applications/Spotify.app')
       expect(items[1].name).toBe('Docker')
+    })
+
+    it('preserves login item names containing commas', async () => {
+      existsSyncMock.mockReturnValue(false)
+      execFileMock.mockResolvedValue({
+        stdout: JSON.stringify([
+          { name: 'Example, Inc.', path: '/Applications/Example.app' },
+        ]),
+      })
+
+      const items = await startup.listItems()
+      expect(items).toHaveLength(1)
+      expect(items[0].name).toBe('Example, Inc.')
     })
 
     it('returns empty array when nothing is available', async () => {
@@ -208,6 +224,16 @@ describe('darwin startup', () => {
       execFileMock.mockResolvedValue({ stdout: '' })
     })
 
+    async function scanLoginItem(name = 'MyApp', appPath = '/Applications/MyApp.app') {
+      existsSyncMock.mockReturnValue(false)
+      execFileMock.mockResolvedValueOnce({
+        stdout: JSON.stringify([{ name, path: appPath }]),
+      })
+      await startup.listItems()
+      execFileMock.mockClear()
+      execFileMock.mockResolvedValue({ stdout: '' })
+    }
+
     it('loads a launch agent when enabling', async () => {
       const result = await startup.toggleItem(
         'com.test', userPlist,
@@ -251,25 +277,44 @@ describe('darwin startup', () => {
     })
 
     it('adds a login item via osascript when enabling', async () => {
-      const result = await startup.toggleItem('MyApp', 'Login Items', '', 'login-item', true)
+      await scanLoginItem()
+      const result = await startup.toggleItem(
+        'MyApp', 'Login Items', '/Applications/MyApp.app', 'login-item', true,
+      )
       expect(result).toBe(true)
       expect(execFileMock).toHaveBeenCalledWith(
         '/usr/bin/osascript',
-        expect.arrayContaining(['-e']),
+        expect.arrayContaining(['--', '/Applications/MyApp.app']),
         expect.any(Object),
       )
     })
 
     it('deletes a login item via osascript when disabling', async () => {
+      await scanLoginItem()
       const result = await startup.toggleItem('MyApp', 'Login Items', '', 'login-item', false)
       expect(result).toBe(true)
+      expect(execFileMock.mock.calls[0][1]).toEqual(
+        expect.arrayContaining(['--', 'MyApp']),
+      )
     })
 
-    it('sanitizes login item names to prevent AppleScript injection', async () => {
-      await startup.toggleItem('My"App\\Test', 'Login Items', '', 'login-item', true)
-      const script = execFileMock.mock.calls[0][1][1]
-      expect(script).not.toContain('"App')
-      expect(script).not.toContain('\\')
+    it('passes special login item names as argv instead of interpolating them', async () => {
+      const name = 'My"App\\Test'
+      const appPath = '/Applications/My"App Test.app'
+      await scanLoginItem(name, appPath)
+      const result = await startup.toggleItem(name, 'Login Items', appPath, 'login-item', true)
+      expect(result).toBe(true)
+      const args = execFileMock.mock.calls[0][1]
+      expect(args.at(-1)).toBe(appPath)
+      expect(args[1]).not.toContain(name)
+    })
+
+    it('rejects an unscanned login item path', async () => {
+      const result = await startup.toggleItem(
+        'Unknown', 'Login Items', '/tmp/unknown.app', 'login-item', true,
+      )
+      expect(result).toBe(false)
+      expect(execFileMock).not.toHaveBeenCalled()
     })
 
     it('returns false for unknown source types', async () => {
@@ -303,6 +348,16 @@ describe('darwin startup', () => {
       unlinkMock.mockResolvedValue(undefined)
     })
 
+    async function scanLoginItem() {
+      existsSyncMock.mockReturnValue(false)
+      execFileMock.mockResolvedValueOnce({
+        stdout: JSON.stringify([{ name: 'MyApp', path: '/Applications/MyApp.app' }]),
+      })
+      await startup.listItems()
+      execFileMock.mockClear()
+      execFileMock.mockResolvedValue({ stdout: '' })
+    }
+
     it('unloads and deletes a launch agent plist', async () => {
       const result = await startup.deleteItem(
         'com.test', userPlist,
@@ -333,11 +388,12 @@ describe('darwin startup', () => {
     })
 
     it('deletes a login item via osascript', async () => {
+      await scanLoginItem()
       const result = await startup.deleteItem('MyApp', 'Login Items', 'login-item')
       expect(result).toBe(true)
       expect(execFileMock).toHaveBeenCalledWith(
         '/usr/bin/osascript',
-        expect.arrayContaining(['-e']),
+        expect.arrayContaining(['--', 'MyApp']),
         expect.any(Object),
       )
     })

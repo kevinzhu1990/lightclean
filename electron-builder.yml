@@ -61,6 +61,8 @@ mac:
   hardenedRuntime: true
   entitlements: resources/entitlements.mac.plist
   entitlementsInherit: resources/entitlements.mac.plist
+  extendInfo:
+    NSAppleEventsUsageDescription: 轻净需要访问系统事件，以查看和管理由用户确认的登录项。
   artifactName: LightClean-${version}-${arch}.${ext}
 
 linux:

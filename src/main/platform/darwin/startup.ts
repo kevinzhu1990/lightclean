@@ -1,20 +1,51 @@
-import { readdir, readFile, unlink } from 'fs/promises'
+import { readdir, unlink } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join, basename, resolve, normalize, sep } from 'path'
+import { join, basename, resolve, normalize, sep, isAbsolute } from 'path'
 import { homedir } from 'os'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { randomUUID } from 'crypto'
+import { createHash } from 'crypto'
 import type { PlatformStartup } from '../types'
 import type { StartupItem, StartupBootTrace } from '../../../shared/types'
 
 const execFileAsync = promisify(execFile)
 const HOME = resolve(homedir())
 
+const LIST_LOGIN_ITEMS_SCRIPT = `
+const systemEvents = Application('System Events')
+JSON.stringify(systemEvents.loginItems().map((item) => ({
+  name: item.name(),
+  path: item.path()
+})))
+`
+
+const ADD_LOGIN_ITEM_SCRIPT = `
+on run argv
+  set appPath to item 1 of argv
+  tell application "System Events"
+    make login item at end with properties {path:appPath, hidden:false}
+  end tell
+end run
+`
+
+const DELETE_LOGIN_ITEM_SCRIPT = `
+on run argv
+  set itemName to item 1 of argv
+  tell application "System Events" to delete login item itemName
+end run
+`
+
+function stableId(source: StartupItem['source'], name: string, location: string): string {
+  return createHash('sha256').update(`${source}\0${name}\0${location}`).digest('hex').slice(0, 16)
+}
+
 export function createDarwinStartup(): PlatformStartup {
+  const knownLoginItems = new Map<string, string>()
+
   return {
     async listItems(): Promise<StartupItem[]> {
       const items: StartupItem[] = []
+      knownLoginItems.clear()
 
       // User Launch Agents
       const userAgentsDir = join(HOME, 'Library', 'LaunchAgents')
@@ -29,7 +60,7 @@ export function createDarwinStartup(): PlatformStartup {
               const isDisabled = plist.disabled === true
 
               items.push({
-                id: randomUUID(),
+                id: stableId('launch-agent-user', label, join(userAgentsDir, file)),
                 name: label,
                 displayName: friendlyName(label),
                 command: plist.program || plist.programArguments?.[0] || file,
@@ -57,7 +88,7 @@ export function createDarwinStartup(): PlatformStartup {
               const isDisabled = plist.disabled === true
 
               items.push({
-                id: randomUUID(),
+                id: stableId('launch-agent-global', label, join(globalAgentsDir, file)),
                 name: label,
                 displayName: friendlyName(label),
                 command: plist.program || plist.programArguments?.[0] || file,
@@ -72,19 +103,24 @@ export function createDarwinStartup(): PlatformStartup {
         } catch { /* skip */ }
       }
 
-      // Login Items via osascript
+      // Login Items via JXA. JSON preserves commas and other characters in names,
+      // while the path is required to safely re-enable a disabled item.
       try {
         const { stdout } = await execFileAsync('/usr/bin/osascript', [
-          '-e', 'tell application "System Events" to get the name of every login item',
+          '-l', 'JavaScript', '-e', LIST_LOGIN_ITEMS_SCRIPT,
         ], { timeout: 10_000 })
 
-        const loginItems = stdout.trim().split(', ').filter(Boolean)
-        for (const name of loginItems) {
+        const loginItems = JSON.parse(stdout) as Array<{ name?: unknown; path?: unknown }>
+        for (const loginItem of loginItems) {
+          if (typeof loginItem.name !== 'string' || typeof loginItem.path !== 'string') continue
+          const name = loginItem.name
+          const appPath = loginItem.path
+          knownLoginItems.set(name, appPath)
           items.push({
-            id: randomUUID(),
+            id: stableId('login-item', name, appPath),
             name,
             displayName: name,
-            command: '',
+            command: appPath,
             location: 'Login Items',
             source: 'login-item',
             enabled: true,
@@ -100,7 +136,7 @@ export function createDarwinStartup(): PlatformStartup {
     async toggleItem(
       name: string,
       location: string,
-      _command: string,
+      command: string,
       source: StartupItem['source'],
       enabled: boolean,
     ): Promise<boolean> {
@@ -123,15 +159,16 @@ export function createDarwinStartup(): PlatformStartup {
           return true
         }
         if (source === 'login-item') {
-          // Sanitize name to prevent AppleScript injection
-          const safeName = name.replace(/[\\"]/g, '')
           if (enabled) {
+            const scannedPath = knownLoginItems.get(name)
+            if (!scannedPath || scannedPath !== command || !isAbsolute(command)) return false
             await execFileAsync('/usr/bin/osascript', [
-              '-e', `tell application "System Events" to make login item at end with properties {name:"${safeName}", hidden:false}`,
+              '-e', ADD_LOGIN_ITEM_SCRIPT, '--', command,
             ], { timeout: 10_000 })
           } else {
+            if (!knownLoginItems.has(name)) return false
             await execFileAsync('/usr/bin/osascript', [
-              '-e', `tell application "System Events" to delete login item "${safeName}"`,
+              '-e', DELETE_LOGIN_ITEM_SCRIPT, '--', name,
             ], { timeout: 10_000 })
           }
           return true
@@ -165,9 +202,9 @@ export function createDarwinStartup(): PlatformStartup {
           return true
         }
         if (source === 'login-item') {
-          const safeName = name.replace(/[\\"]/g, '')
+          if (!knownLoginItems.has(name)) return false
           await execFileAsync('/usr/bin/osascript', [
-            '-e', `tell application "System Events" to delete login item "${safeName}"`,
+            '-e', DELETE_LOGIN_ITEM_SCRIPT, '--', name,
           ], { timeout: 10_000 })
           return true
         }

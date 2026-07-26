@@ -6,6 +6,26 @@ const execFileAsync = promisify(execFile)
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '0.0.0.0', '::'])
 
+async function getWifiDevice(): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync('/usr/sbin/networksetup', [
+      '-listallhardwareports',
+    ], { timeout: 10_000 })
+
+    const blocks = stdout.split(/\r?\n\r?\n/)
+    for (const block of blocks) {
+      const port = block.match(/^Hardware Port:\s*(.+)$/m)?.[1]?.trim()
+      if (port !== 'Wi-Fi' && port !== 'AirPort') continue
+
+      const device = block.match(/^Device:\s*(\S+)$/m)?.[1]
+      if (device) return device
+    }
+  } catch {
+    // networksetup may be unavailable in restricted environments
+  }
+  return null
+}
+
 export function createDarwinNetwork(): PlatformNetwork {
   return {
     async getEstablishedConnections(): Promise<ActiveConnection[]> {
@@ -125,8 +145,10 @@ export function createDarwinNetwork(): PlatformNetwork {
 
     async getWifiProfiles(): Promise<WifiProfile[]> {
       try {
+        const device = await getWifiDevice()
+        if (!device) return []
         const { stdout } = await execFileAsync('/usr/sbin/networksetup', [
-          '-listpreferredwirelessnetworks', 'en0',
+          '-listpreferredwirelessnetworks', device,
         ], { timeout: 10000 })
         const profiles: WifiProfile[] = []
         for (const line of stdout.split('\n').slice(1)) {
@@ -141,8 +163,10 @@ export function createDarwinNetwork(): PlatformNetwork {
 
     async deleteWifiProfile(name: string): Promise<boolean> {
       try {
+        const device = await getWifiDevice()
+        if (!device) return false
         await execFileAsync('/usr/sbin/networksetup', [
-          '-removepreferredwirelessnetwork', 'en0', name,
+          '-removepreferredwirelessnetwork', device, name,
         ], { timeout: 10000 })
         return true
       } catch {

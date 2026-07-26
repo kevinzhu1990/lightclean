@@ -92,6 +92,12 @@ import type {
   WeChatScanResult,
   WeChatDeleteResult,
   LicenseActionResult,
+  LicenseAdminIssueResult,
+  LicenseAdminStatus,
+  LicenseFeishuConfig,
+  LicenseFeishuConfigInput,
+  LicenseFeishuSyncResult,
+  LicenseFeishuTestResult,
   LicenseStatus,
 } from '../shared/types'
 
@@ -413,6 +419,23 @@ const api = {
     ipcRenderer.invoke(IPC.LICENSE_REDEEM, code),
   licenseDeactivate: (): Promise<LicenseActionResult> =>
     ipcRenderer.invoke(IPC.LICENSE_DEACTIVATE),
+  licenseAdminStatus: (): Promise<LicenseAdminStatus> =>
+    ipcRenderer.invoke(IPC.LICENSE_ADMIN_STATUS),
+  licenseAdminSelectFile: (kind: 'database' | 'privateKey'): Promise<LicenseAdminStatus> =>
+    ipcRenderer.invoke(IPC.LICENSE_ADMIN_SELECT_FILE, kind),
+  licenseAdminIssue: (
+    purchaseCode: string,
+    deviceRequestCode: string,
+  ): Promise<LicenseAdminIssueResult> =>
+    ipcRenderer.invoke(IPC.LICENSE_ADMIN_ISSUE, purchaseCode, deviceRequestCode),
+  licenseFeishuConfigGet: (): Promise<LicenseFeishuConfig> =>
+    ipcRenderer.invoke(IPC.LICENSE_FEISHU_CONFIG_GET),
+  licenseFeishuConfigSave: (input: LicenseFeishuConfigInput): Promise<LicenseFeishuConfig> =>
+    ipcRenderer.invoke(IPC.LICENSE_FEISHU_CONFIG_SAVE, input),
+  licenseFeishuTest: (): Promise<LicenseFeishuTestResult> =>
+    ipcRenderer.invoke(IPC.LICENSE_FEISHU_TEST),
+  licenseFeishuSyncCode: (purchaseCode: string): Promise<LicenseFeishuSyncResult> =>
+    ipcRenderer.invoke(IPC.LICENSE_FEISHU_SYNC_CODE, purchaseCode),
 
   // Auto-updater
   updaterCheck: (): Promise<void> => ipcRenderer.invoke(IPC.UPDATER_CHECK),

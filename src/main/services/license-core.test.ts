@@ -48,6 +48,21 @@ describe('license core', () => {
     expect(status.daysRemaining).toBeNull()
   })
 
+  it('requires an online refresh after the offline allowance expires', () => {
+    const stored: StoredLicense = {
+      plan: 'annual',
+      startedAt: now.toISOString(),
+      expiresAt: addDays(now, 365).toISOString(),
+      offlineUntil: addDays(now, -1).toISOString(),
+      activationMode: 'online',
+      activationToken: 'token',
+    }
+    const status = buildLicenseStatus(stored, 'AB12CD34', '', now)
+    expect(status.state).toBe('needs_activation')
+    expect(status.canUsePaidFeatures).toBe(false)
+    expect(status.message).toContain('联网刷新')
+  })
+
   it('normalizes redemption codes', () => {
     expect(normalizeRedemptionCode(' lc_q1 abcd ')).toBe('LC-Q1-ABCD')
     expect(daysRemaining(null, now)).toBeNull()
@@ -97,5 +112,28 @@ describe('license core', () => {
     const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
     const tampered = token.replace('LC-ACT-', 'LC-ACT-X')
     expect(verifyOfflineActivation(tampered, 'd'.repeat(64), publicPem, now).success).toBe(false)
+  })
+
+  it('accepts a signed online activation with a 14 day offline allowance', () => {
+    const { publicKey, privateKey } = generateKeyPairSync('ed25519')
+    const deviceId = 'e'.repeat(64)
+    const payload = Buffer.from(JSON.stringify({
+      v: 2,
+      licenseId: 'online-license-test',
+      deviceId,
+      plan: 'quarter',
+      issuedAt: now.toISOString(),
+      expiresAt: addDays(now, 90).toISOString(),
+      offlineUntil: addDays(now, 14).toISOString(),
+      purchaseCodeHint: 'LC-QTR-****-TEST',
+    }), 'utf8')
+    const token = `${ACTIVATION_PREFIX}${payload.toString('base64url')}.${sign(null, payload, privateKey).toString('base64url')}`
+    const publicPem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
+    const result = verifyOfflineActivation(token, deviceId, publicPem, now)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.payload.v).toBe(2)
+      expect(result.payload.offlineUntil).toBe(addDays(now, 14).toISOString())
+    }
   })
 })

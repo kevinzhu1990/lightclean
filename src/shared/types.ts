@@ -30,13 +30,70 @@ export interface LicenseStatus {
   deviceIdSuffix: string
   message: string
   deviceRequestCode: string
-  activationMode: 'offline'
+  activationMode: 'offline' | 'online'
+  offlineUntil: string | null
 }
 
 export interface LicenseActionResult {
   success: boolean
   status: LicenseStatus
   error?: string
+}
+
+export interface LicenseAdminStatus {
+  supported: boolean
+  isAdmin: boolean
+  databasePath: string | null
+  privateKeyPath: string | null
+  databaseFound: boolean
+  privateKeyFound: boolean
+  keyMatches: boolean
+  ready: boolean
+  message: string
+}
+
+export interface LicenseAdminIssueResult {
+  success: boolean
+  activationCode?: string
+  plan?: Exclude<LicensePlan, 'trial'>
+  expiresAt?: string | null
+  deviceSuffix?: string
+  repeated?: boolean
+  feishuSync?: {
+    success: boolean
+    message: string
+    row?: number
+  }
+  error?: string
+}
+
+export interface LicenseFeishuConfig {
+  configured: boolean
+  appId: string
+  appSecretSaved: boolean
+  wikiUrl: string
+  sheetTitle: string
+  message: string
+}
+
+export interface LicenseFeishuConfigInput {
+  appId: string
+  appSecret?: string
+  wikiUrl: string
+  sheetTitle: string
+}
+
+export interface LicenseFeishuTestResult {
+  success: boolean
+  message: string
+  spreadsheetTitle?: string
+  sheetTitle?: string
+}
+
+export interface LicenseFeishuSyncResult {
+  success: boolean
+  message: string
+  row?: number
 }
 
 export interface ScanHistoryCategory {

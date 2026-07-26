@@ -14,3 +14,6 @@ license-server/.env
 license-server/*.db
 license-server/*.db-shm
 license-server/*.db-wal
+license-cloud/import-codes.sql
+license-cloud/.wrangler/
+license-cloud/.wrangler-dist/

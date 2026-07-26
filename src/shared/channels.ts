@@ -187,6 +187,13 @@ export const IPC = {
   LICENSE_REDEEM: 'license:redeem',
   LICENSE_REFRESH: 'license:refresh',
   LICENSE_DEACTIVATE: 'license:deactivate',
+  LICENSE_ADMIN_STATUS: 'license:admin:status',
+  LICENSE_ADMIN_SELECT_FILE: 'license:admin:select-file',
+  LICENSE_ADMIN_ISSUE: 'license:admin:issue',
+  LICENSE_FEISHU_CONFIG_GET: 'license:feishu:config:get',
+  LICENSE_FEISHU_CONFIG_SAVE: 'license:feishu:config:save',
+  LICENSE_FEISHU_TEST: 'license:feishu:test',
+  LICENSE_FEISHU_SYNC_CODE: 'license:feishu:sync-code',
 
   // Auto-updater
   UPDATER_CHECK: 'updater:check',

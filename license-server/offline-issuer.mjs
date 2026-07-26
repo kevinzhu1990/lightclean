@@ -2,6 +2,8 @@ import { createHash, randomUUID, sign } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { createInterface } from 'node:readline/promises'
+import { stdin, stdout } from 'node:process'
 import Database from 'better-sqlite3'
 
 const REQUEST_PREFIX = 'LC-REQ-'
@@ -27,8 +29,11 @@ function addDays(value, days) {
 function parseRequest(raw) {
   const request = String(raw || '').trim()
   if (!request.startsWith(REQUEST_PREFIX)) fail('设备申请码格式不正确。')
+
   try {
-    const payload = JSON.parse(Buffer.from(request.slice(REQUEST_PREFIX.length), 'base64url').toString('utf8'))
+    const payload = JSON.parse(
+      Buffer.from(request.slice(REQUEST_PREFIX.length), 'base64url').toString('utf8'),
+    )
     if (
       payload.v !== 1
       || typeof payload.deviceId !== 'string'
@@ -45,16 +50,28 @@ function parseRequest(raw) {
   }
 }
 
-const rawCode = argument('--code')
-const rawRequest = argument('--request')
+let rawCode = argument('--code')
+let rawRequest = argument('--request')
 const rebind = process.argv.includes('--rebind')
 const copy = process.argv.includes('--copy')
+
+if (process.argv.includes('--interactive')) {
+  const prompt = createInterface({ input: stdin, output: stdout })
+  try {
+    if (!rawCode) rawCode = await prompt.question('请输入客户的购买兑换码：')
+    if (!rawRequest) rawRequest = await prompt.question('请粘贴客户的设备申请码：')
+  } finally {
+    prompt.close()
+  }
+}
+
 if (!rawCode || !rawRequest) {
   fail('用法：node offline-issuer.mjs --code "购买兑换码" --request "LC-REQ-..." [--copy] [--rebind]')
 }
 
 const code = rawCode.trim().toUpperCase().replace(/[\s_]+/g, '-')
 if (!/^[A-Z0-9-]{10,64}$/.test(code)) fail('购买兑换码格式不正确。')
+
 const { request, payload: requestPayload } = parseRequest(rawRequest)
 const keyPath = resolve(
   argument('--key')
@@ -74,7 +91,13 @@ try {
   fail(`找不到授权私钥：${keyPath}`)
 }
 
-const db = new Database(databasePath)
+let db
+try {
+  db = new Database(databasePath)
+} catch {
+  fail(`无法打开兑换码数据库：${databasePath}`)
+}
+
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 db.exec(`
@@ -116,7 +139,8 @@ const issue = db.transaction(() => {
     }
     const year = new Date().getUTCFullYear()
     const rebindCount = row.rebind_year === year ? row.rebind_count : 0
-    if (rebindCount >= 2) fail('该兑换码本年度换绑次数已达到2次。')
+    if (rebindCount >= 2) fail('该兑换码本年度换绑次数已达到 2 次。')
+
     db.prepare('UPDATE offline_activations SET revoked_at = ? WHERE id = ?')
       .run(new Date().toISOString(), existing.id)
     db.prepare('UPDATE codes SET rebind_year = ?, rebind_count = ? WHERE code_hash = ?')
@@ -150,6 +174,7 @@ const issue = db.transaction(() => {
   const payloadBytes = Buffer.from(JSON.stringify(activationPayload), 'utf8')
   const signature = sign(null, payloadBytes, privateKey)
   const token = `${ACTIVATION_PREFIX}${payloadBytes.toString('base64url')}.${signature.toString('base64url')}`
+
   db.prepare(`
     INSERT INTO offline_activations
       (id, code_hash, device_id, device_suffix, request_code, plan, issued_at, expires_at, token)
@@ -170,14 +195,26 @@ const issue = db.transaction(() => {
     SET redeemed_at = ?, entitlement_expires_at = ?, current_activation_id = ?
     WHERE code_hash = ?
   `).run(issuedAt, expiresAt, licenseId, codeHash)
-  return { token, plan: row.plan, expiresAt, deviceSuffix: requestPayload.deviceSuffix, repeated: false }
+
+  return {
+    token,
+    plan: row.plan,
+    expiresAt,
+    deviceSuffix: requestPayload.deviceSuffix,
+    repeated: false,
+  }
 })
 
 const result = issue()
+db.close()
+
 if (copy && process.platform === 'win32') {
   const copied = spawnSync('clip.exe', { input: result.token, encoding: 'utf8' })
-  if (copied.status !== 0) console.error('提示：自动复制失败，请手动复制下方激活码。')
+  if (copied.status !== 0) {
+    console.error('提示：自动复制失败，请手动复制下方激活码。')
+  }
 }
+
 console.error(`成功：${result.repeated ? '已重新读取' : '已签发'} ${result.plan} 激活码`)
 console.error(`设备尾号：${result.deviceSuffix}`)
 console.error(`到期时间：${result.expiresAt || '永久有效'}`)

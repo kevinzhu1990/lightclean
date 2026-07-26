@@ -1,0 +1,13 @@
+name = "lightclean-license"
+main = "src/index.ts"
+compatibility_date = "2026-07-26"
+workers_dev = true
+
+[[d1_databases]]
+binding = "LICENSE_DB"
+database_name = "lightclean-license"
+database_id = "65637543-ed99-4fe4-b45c-ef62267b63b1"
+
+[vars]
+OFFLINE_DAYS = "14"
+FEISHU_STATUS_COLUMN = "D"

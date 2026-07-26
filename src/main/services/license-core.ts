@@ -10,17 +10,21 @@ export interface StoredLicense {
   startedAt: string
   expiresAt: string | null
   activationToken?: string
+  redemptionCode?: string
   maskedCode?: string
   licenseId?: string
+  offlineUntil?: string | null
+  activationMode?: 'offline' | 'online'
 }
 
 export interface OfflineActivationPayload {
-  v: 1
+  v: 1 | 2
   licenseId: string
   deviceId: string
   plan: Exclude<LicensePlan, 'trial'>
   issuedAt: string
   expiresAt: string | null
+  offlineUntil?: string
   purchaseCodeHint: string
 }
 
@@ -63,11 +67,15 @@ export function buildLicenseStatus(
       message: messageOverride ?? '请复制设备申请码，向卖家换取本机激活码。',
       deviceRequestCode,
       activationMode: 'offline',
+      offlineUntil: null,
     }
   }
 
   const expiresAt = stored.expiresAt
   const expired = expiresAt ? new Date(expiresAt).getTime() <= now.getTime() : false
+  const offlineExpired = stored.plan !== 'trial'
+    && Boolean(stored.offlineUntil)
+    && new Date(stored.offlineUntil as string).getTime() <= now.getTime()
   let state: LicenseState = stored.plan === 'trial' ? 'trial' : 'active'
   let allowed = true
   let message = stored.plan === 'trial'
@@ -80,6 +88,10 @@ export function buildLicenseStatus(
     message = stored.plan === 'trial'
       ? '免费试用已结束，请使用本机激活码继续使用。'
       : '当前套餐已到期，续费后即可继续使用。'
+  } else if (offlineExpired) {
+    state = 'needs_activation'
+    allowed = false
+    message = '离线授权已超过14天，请联网刷新授权后继续使用。'
   }
 
   return {
@@ -92,7 +104,8 @@ export function buildLicenseStatus(
     deviceIdSuffix,
     message: messageOverride ?? message,
     deviceRequestCode,
-    activationMode: 'offline',
+    activationMode: stored.activationMode ?? 'offline',
+    offlineUntil: stored.offlineUntil ?? null,
   }
 }
 
@@ -146,13 +159,14 @@ export function verifyOfflineActivation(
     }
     const value = JSON.parse(payloadBytes.toString('utf8')) as Partial<OfflineActivationPayload>
     if (
-      value.v !== 1
+      (value.v !== 1 && value.v !== 2)
       || typeof value.licenseId !== 'string'
       || typeof value.deviceId !== 'string'
       || !isPaidPlan(value.plan)
       || typeof value.issuedAt !== 'string'
       || !(typeof value.expiresAt === 'string' || value.expiresAt === null)
       || typeof value.purchaseCodeHint !== 'string'
+      || (value.v === 2 && typeof value.offlineUntil !== 'string')
     ) {
       return { success: false, error: '激活码内容不完整，请联系卖家重新生成。' }
     }
@@ -164,6 +178,9 @@ export function verifyOfflineActivation(
     }
     if (value.expiresAt && new Date(value.expiresAt).getTime() <= now.getTime()) {
       return { success: false, error: '该激活码对应的套餐已到期，请续费后重新获取。' }
+    }
+    if (value.offlineUntil && Number.isNaN(new Date(value.offlineUntil).getTime())) {
+      return { success: false, error: '离线授权日期无效，请联网重新激活。' }
     }
     return { success: true, payload: value as OfflineActivationPayload }
   } catch {

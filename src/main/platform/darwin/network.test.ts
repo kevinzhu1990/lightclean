@@ -190,15 +190,25 @@ describe('darwin network', () => {
   })
 
   describe('getWifiProfiles', () => {
-    it('parses wifi profile names from networksetup output', async () => {
-      execFileMock.mockResolvedValue({
-        stdout: [
-          'Preferred networks on en0:',
-          '\tHomeNetwork',
-          '\tOfficeWiFi',
-          '\tCoffeeShop',
-        ].join('\n'),
-      })
+    const hardwarePorts = [
+      'Hardware Port: Ethernet',
+      'Device: en0',
+      '',
+      'Hardware Port: Wi-Fi',
+      'Device: en1',
+    ].join('\n')
+
+    it('detects the Wi-Fi device and parses profile names', async () => {
+      execFileMock
+        .mockResolvedValueOnce({ stdout: hardwarePorts })
+        .mockResolvedValueOnce({
+          stdout: [
+            'Preferred networks on en1:',
+            '\tHomeNetwork',
+            '\tOfficeWiFi',
+            '\tCoffeeShop',
+          ].join('\n'),
+        })
 
       const profiles = await network.getWifiProfiles()
       expect(profiles).toHaveLength(3)
@@ -206,12 +216,17 @@ describe('darwin network', () => {
       expect(profiles[1].name).toBe('OfficeWiFi')
       expect(profiles[2].name).toBe('CoffeeShop')
       expect(profiles[0].security).toBe('Wi-Fi')
+      expect(execFileMock).toHaveBeenLastCalledWith(
+        '/usr/sbin/networksetup',
+        ['-listpreferredwirelessnetworks', 'en1'],
+        expect.any(Object),
+      )
     })
 
     it('skips the header line', async () => {
-      execFileMock.mockResolvedValue({
-        stdout: 'Preferred networks on en0:\n\tMyNetwork\n',
-      })
+      execFileMock
+        .mockResolvedValueOnce({ stdout: hardwarePorts })
+        .mockResolvedValueOnce({ stdout: 'Preferred networks on en1:\n\tMyNetwork\n' })
 
       const profiles = await network.getWifiProfiles()
       expect(profiles).toHaveLength(1)
@@ -219,9 +234,9 @@ describe('darwin network', () => {
     })
 
     it('skips empty lines', async () => {
-      execFileMock.mockResolvedValue({
-        stdout: 'Preferred networks on en0:\n\tMyNetwork\n\n\n',
-      })
+      execFileMock
+        .mockResolvedValueOnce({ stdout: hardwarePorts })
+        .mockResolvedValueOnce({ stdout: 'Preferred networks on en1:\n\tMyNetwork\n\n\n' })
 
       const profiles = await network.getWifiProfiles()
       expect(profiles).toHaveLength(1)
@@ -232,16 +247,30 @@ describe('darwin network', () => {
       const profiles = await network.getWifiProfiles()
       expect(profiles).toEqual([])
     })
+
+    it('returns empty when no Wi-Fi hardware port exists', async () => {
+      execFileMock.mockResolvedValue({
+        stdout: 'Hardware Port: Ethernet\nDevice: en0\n',
+      })
+
+      const profiles = await network.getWifiProfiles()
+      expect(profiles).toEqual([])
+      expect(execFileMock).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('deleteWifiProfile', () => {
-    it('calls networksetup to remove the profile', async () => {
-      execFileMock.mockResolvedValue({ stdout: '' })
+    it('detects the Wi-Fi device before removing the profile', async () => {
+      execFileMock
+        .mockResolvedValueOnce({
+          stdout: 'Hardware Port: Wi-Fi\nDevice: en7\n',
+        })
+        .mockResolvedValueOnce({ stdout: '' })
       const result = await network.deleteWifiProfile('CoffeeShop')
       expect(result).toBe(true)
-      expect(execFileMock).toHaveBeenCalledWith(
+      expect(execFileMock).toHaveBeenLastCalledWith(
         '/usr/sbin/networksetup',
-        ['-removepreferredwirelessnetwork', 'en0', 'CoffeeShop'],
+        ['-removepreferredwirelessnetwork', 'en7', 'CoffeeShop'],
         expect.any(Object),
       )
     })
@@ -250,6 +279,16 @@ describe('darwin network', () => {
       execFileMock.mockRejectedValue(new Error('fail'))
       const result = await network.deleteWifiProfile('BadNetwork')
       expect(result).toBe(false)
+    })
+
+    it('does not attempt removal without a Wi-Fi device', async () => {
+      execFileMock.mockResolvedValue({
+        stdout: 'Hardware Port: Thunderbolt Ethernet\nDevice: en2\n',
+      })
+
+      const result = await network.deleteWifiProfile('CoffeeShop')
+      expect(result).toBe(false)
+      expect(execFileMock).toHaveBeenCalledTimes(1)
     })
   })
 

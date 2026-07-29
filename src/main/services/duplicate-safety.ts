@@ -1,4 +1,4 @@
-import { isAbsolute, normalize, parse, relative, resolve } from 'path'
+import { posix, win32 } from 'path'
 
 const WINDOWS_PROTECTED_ROOTS = new Set([
   'windows',
@@ -36,9 +36,10 @@ const UNIX_PROTECTED_ROOTS = new Set([
 ])
 
 function pathSegments(targetPath: string, platform: NodeJS.Platform): string[] {
-  const resolved = normalize(resolve(targetPath))
-  const root = parse(resolved).root
-  return relative(root, resolved)
+  const pathApi = platform === 'win32' ? win32 : posix
+  const resolved = pathApi.normalize(pathApi.resolve(targetPath))
+  const root = pathApi.parse(resolved).root
+  return pathApi.relative(root, resolved)
     .split(/[\\/]+/)
     .filter(Boolean)
     .map((segment) => segment.toLowerCase())
@@ -53,7 +54,8 @@ export function isProtectedDuplicatePath(
   targetPath: string,
   platform: NodeJS.Platform = process.platform,
 ): boolean {
-  if (!targetPath || !isAbsolute(targetPath)) return true
+  const pathApi = platform === 'win32' ? win32 : posix
+  if (!targetPath || !pathApi.isAbsolute(targetPath)) return true
   const segments = pathSegments(targetPath, platform)
   if (segments.length === 0) return true
 

@@ -1,3 +1,4 @@
+## [1.3.2](https://github.com/kevinzhu1990/lightclean/compare/v1.3.0...v1.3.2) (2026-07-29)
 # 轻净 LightClean 1.3.0 (2026-07-23)
 
 ### 新功能

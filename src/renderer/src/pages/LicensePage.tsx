@@ -262,6 +262,7 @@ export function LicensePage() {
         </div>
       </section>
 
+      <LicenseAdminPanel />
     </div>
   )
 }

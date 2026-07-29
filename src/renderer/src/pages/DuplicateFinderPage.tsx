@@ -141,7 +141,12 @@ export function DuplicateFinderPage() {
           toast.success(t('deleteSuccess', { count: result.deleted, size: formatBytes(result.spaceRecovered) }))
         }
         if (result.failed > 0) {
-          toast.error(t('deleteFailed', { failed: result.failed }))
+          const firstReason = result.errors[0]?.reason
+          toast.error(
+            firstReason
+              ? `${t('deleteFailed', { failed: result.failed })}：${firstReason}`
+              : t('deleteFailed', { failed: result.failed })
+          )
         }
         store.setStatus('complete')
       }
@@ -534,6 +539,25 @@ export function DuplicateFinderPage() {
                   </button>
                 )}
               </div>
+
+              {store.deleteResult && store.deleteResult.failed > 0 && (
+                <div
+                  className="mb-4 rounded-xl px-4 py-3 text-[12px]"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5' }}
+                >
+                  <div className="font-semibold">
+                    {t('deleteFailed', { failed: store.deleteResult.failed })}
+                  </div>
+                  {store.deleteResult.errors.slice(0, 3).map((error) => (
+                    <div key={error.path} className="mt-1 truncate" title={`${error.path}：${error.reason}`}>
+                      {error.reason}：{error.path}
+                    </div>
+                  ))}
+                  <div className="mt-2 text-zinc-400">
+                    请关闭占用文件的程序；扫描整个磁盘时，轻净会自动跳过 Windows 和程序安装目录。
+                  </div>
+                </div>
+              )}
 
               {/* Duplicate groups */}
               <div className="space-y-2">

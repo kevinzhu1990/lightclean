@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { readdir, stat, lstat, realpath, rm } from 'fs/promises'
+import { chmod, readdir, stat, lstat, realpath, rm } from 'fs/promises'
 import { createReadStream } from 'fs'
 import { createHash } from 'crypto'
 import { join, extname, isAbsolute, resolve, relative } from 'path'
@@ -14,6 +14,7 @@ import type {
   DuplicateDeleteResult
 } from '../../shared/types'
 import type { WindowGetter } from './index'
+import { isProtectedDuplicatePath } from '../services/duplicate-safety'
 
 let cancelled = false
 let lastScanRoot = ''
@@ -51,6 +52,7 @@ async function walkDirectory(
 ): Promise<void> {
   if (cancelled) return
   if (depth > options.maxDepth) return
+  if (isProtectedDuplicatePath(dirPath)) return
 
   let entries
   try {
@@ -408,6 +410,11 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
 
     for (const filePath of safePaths) {
       try {
+        if (isProtectedDuplicatePath(filePath)) {
+          failed++
+          errors.push({ path: filePath, reason: '安全保护：Windows、程序安装目录和系统目录中的文件不能删除' })
+          continue
+        }
         if (!lastScanRoot || !isPathInside(filePath, lastScanRoot)) {
           failed++
           errors.push({ path: filePath, reason: '安全保护：路径不在本次扫描目录内' })
@@ -437,7 +444,18 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
         if (deleteMode === 'recycle') {
           await shell.trashItem(filePath)
         } else {
-          await rm(filePath, { force: true })
+          try {
+            await rm(filePath, { force: true })
+          } catch (error: any) {
+            // Windows read-only attributes can make rm() return EPERM even for
+            // user-owned files. Clear the write restriction once, then retry.
+            if (process.platform === 'win32' && (error?.code === 'EPERM' || error?.code === 'EACCES')) {
+              await chmod(filePath, 0o666)
+              await rm(filePath, { force: true })
+            } else {
+              throw error
+            }
+          }
         }
         deleted++
         spaceRecovered += fileSize
@@ -449,7 +467,9 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
             ? '文件正在使用，请关闭相关程序后重新扫描。'
             : err?.code === 'ENOENT'
               ? '文件已不存在，请重新扫描。'
-              : '删除失败，请检查文件权限后重新扫描。'
+              : err?.code === 'ENOTSUP' || err?.code === 'ENOSYS'
+                ? '当前磁盘不支持移入回收站，请确认文件后改用永久删除。'
+                : `删除失败${err?.code ? `（${err.code}）` : ''}，请检查磁盘权限后重新扫描。`
         errors.push({ path: filePath, reason })
       }
     }

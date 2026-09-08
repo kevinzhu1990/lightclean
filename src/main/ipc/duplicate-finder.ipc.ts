@@ -422,6 +422,11 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
         }
         const canonicalPath = await realpath(filePath)
         const canonicalRoot = await realpath(lastScanRoot)
+        if (isProtectedDuplicatePath(canonicalPath)) {
+          failed++
+          errors.push({ path: filePath, reason: '安全保护：文件的真实路径位于系统或应用数据目录' })
+          continue
+        }
         if (!isPathInside(canonicalPath, canonicalRoot)) {
           failed++
           errors.push({ path: filePath, reason: '安全保护：文件的真实路径超出本次扫描边界' })

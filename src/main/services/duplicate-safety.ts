@@ -60,6 +60,14 @@ export function isProtectedDuplicatePath(
   if (segments.length === 0) return true
 
   const first = segments[0]
+  // User-level application stores contain intentional duplicates too.
+  if (first === 'users' && segments.length >= 3) {
+    const userDirectory = segments[2]
+    if (platform === 'win32' && userDirectory === 'appdata') return true
+    if (platform === 'darwin' && ['library', 'applications'].includes(userDirectory)) return true
+  }
+  // Applications can be installed anywhere, including external data drives.
+  if (platform === 'darwin' && segments.some((segment) => segment.endsWith('.app'))) return true
   return platform === 'win32'
     ? WINDOWS_PROTECTED_ROOTS.has(first)
     : UNIX_PROTECTED_ROOTS.has(first)

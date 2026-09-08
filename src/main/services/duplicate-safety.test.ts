@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { isProtectedDuplicatePath } from './duplicate-safety'
 
 describe('duplicate cleanup protected paths', () => {
+  it('protects user-installed macOS applications', () => {
+    expect(isProtectedDuplicatePath('/Users/alice/Applications/Shared/data', 'darwin')).toBe(true)
+  })
+
+  it('allows similarly named ordinary Windows data folders', () => {
+    expect(isProtectedDuplicatePath('D:\\Media\\AppData\\notes.txt', 'win32')).toBe(false)
+  })
+
+  it('protects user application data and application bundles', () => {
+    expect(isProtectedDuplicatePath('/Users/alice/Library/Mail/message', 'darwin')).toBe(true)
+    expect(isProtectedDuplicatePath('/Volumes/Data/Tool.app/Contents/data', 'darwin')).toBe(true)
+    expect(isProtectedDuplicatePath('C:\\Users\\Alice\\AppData\\Local\\app\\data', 'win32')).toBe(true)
+    expect(isProtectedDuplicatePath('/Users/alice/Documents/Library/report.pdf', 'darwin')).toBe(false)
+  })
   it('protects Windows and application installation trees', () => {
     expect(isProtectedDuplicatePath('C:\\Windows\\System32\\kernel32.dll', 'win32')).toBe(true)
     expect(isProtectedDuplicatePath('C:\\Program Files\\Example\\app.dll', 'win32')).toBe(true)

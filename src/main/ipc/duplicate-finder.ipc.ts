@@ -14,7 +14,7 @@ import type {
   DuplicateDeleteResult
 } from '../../shared/types'
 import type { WindowGetter } from './index'
-import { isProtectedDuplicatePath } from '../services/duplicate-safety'
+import { canScanDuplicateDirectory, isProtectedDuplicatePath } from '../services/duplicate-safety'
 
 let cancelled = false
 let lastScanRoot = ''
@@ -52,7 +52,7 @@ async function walkDirectory(
 ): Promise<void> {
   if (cancelled) return
   if (depth > options.maxDepth) return
-  if (isProtectedDuplicatePath(dirPath)) return
+  if (!canScanDuplicateDirectory(dirPath)) return
 
   let entries
   try {
@@ -78,6 +78,7 @@ async function walkDirectory(
 
       await walkDirectory(fullPath, options, depth + 1, files, win, lastReport)
     } else if (entry.isFile()) {
+      if (isProtectedDuplicatePath(fullPath)) continue
       try {
         const s = await stat(fullPath)
 

@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { isProtectedDuplicatePath } from './duplicate-safety'
+import { canScanDuplicateDirectory, isProtectedDuplicatePath } from './duplicate-safety'
 
 describe('duplicate cleanup protected paths', () => {
+  it('allows drive traversal without allowing drive or system file deletion', () => {
+    for (const root of ['C:\\', 'D:\\', '\\\\server\\share\\']) {
+      expect(canScanDuplicateDirectory(root, 'win32')).toBe(true)
+      expect(isProtectedDuplicatePath(root, 'win32')).toBe(true)
+    }
+    expect(canScanDuplicateDirectory('relative', 'win32')).toBe(false)
+    for (const name of ['pagefile.sys', 'hiberfil.sys', 'swapfile.sys', 'bootmgr']) {
+      expect(isProtectedDuplicatePath(`C:\\${name}`, 'win32')).toBe(true)
+    }
+  })
   it('protects Windows and application installation trees', () => {
     expect(isProtectedDuplicatePath('C:\\Windows\\System32\\kernel32.dll', 'win32')).toBe(true)
     expect(isProtectedDuplicatePath('C:\\Program Files\\Example\\app.dll', 'win32')).toBe(true)

@@ -40,6 +40,8 @@
   "deleting": "正在删除文件…",
   "deleteComplete": "删除完成",
   "deleteSuccess": "已删除 {{count}} 个文件，释放了 {{size}}",
+  "recycleSuccess": "已将 {{count}} 个文件（{{size}}）移入回收站；确认无误后清空回收站才能释放空间",
+  "requestFailed": "操作失败，请重试；若仍失败，请保留报错信息并联系支持",
   "deleteFailed": "有 {{failed}} 个文件无法删除",
   "openLocation": "打开文件位置",
   "original": "保留",

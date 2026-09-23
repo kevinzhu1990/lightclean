@@ -102,10 +102,10 @@ export async function safeDelete(filePath: string, mode: 'recycle' | 'permanent'
     }
     return { path: filePath, success: true }
   } catch (err: any) {
-    if (err.code === 'EBUSY' || err.code === 'EPERM') {
+    if (err.code === 'EBUSY') {
       return { path: filePath, success: false, reason: 'in-use' }
     }
-    if (err.code === 'EACCES') {
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
       return { path: filePath, success: false, reason: 'permission-denied' }
     }
     if (err.code === 'ENOENT') {

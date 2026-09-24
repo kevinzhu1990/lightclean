@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   CheckCircle2,
@@ -212,6 +213,11 @@ export function CleanSummary({ summary, onRelaunchAsAdmin, platform }: CleanSumm
         </div>
 
         {/* Category breakdown */}
+        {summary.filesDeleted > 0 && (
+          <p className="mb-4 text-xs text-zinc-400">
+            {t('summaryRecycleNotice')} <Link to="/recycle-bin" className="text-amber-400 underline">{t('summaryOpenRecycleBin')}</Link>
+          </p>
+        )}
         {cleanedCategories.length > 1 && (
           <motion.div
             initial={{ opacity: 0 }}

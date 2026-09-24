@@ -12,6 +12,12 @@ const WINDOWS_PROTECTED_ROOTS = new Set([
   'perflogs',
   'msocache',
   'config.msi',
+  'pagefile.sys',
+  'swapfile.sys',
+  'hiberfil.sys',
+  'bootmgr',
+  'bootnxt',
+  'dumpstack.log.tmp',
 ])
 
 const UNIX_PROTECTED_ROOTS = new Set([
@@ -43,6 +49,13 @@ function pathSegments(targetPath: string, platform: NodeJS.Platform): string[] {
     .split(/[\\/]+/)
     .filter(Boolean)
     .map((segment) => segment.toLowerCase())
+}
+
+/** A volume root is a traversal entry point, never a deletion target. */
+export function canScanDuplicateDirectory(targetPath: string, platform: NodeJS.Platform = process.platform): boolean {
+  const pathApi = platform === 'win32' ? win32 : posix
+  if (!targetPath || !pathApi.isAbsolute(targetPath)) return false
+  return pathSegments(targetPath, platform).length === 0 || !isProtectedDuplicatePath(targetPath, platform)
 }
 
 /**

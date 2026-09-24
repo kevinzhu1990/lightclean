@@ -47,3 +47,18 @@ jobs:
       - name: CLI smoke test
         run: bash scripts/cli-smoke-test.sh
         timeout-minutes: 5
+
+      - name: Build Windows test installer
+        if: runner.os == 'Windows'
+        run: npm run package:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Upload Windows test installer
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LightClean-Windows-test-${{ github.sha }}
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 14

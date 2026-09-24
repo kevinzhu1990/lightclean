@@ -105,6 +105,7 @@ export function DuplicateFinderPage() {
         maxDepth: store.maxDepth,
         referenceDirectories: store.referenceDirectories
       })
+      if (!result) throw new Error('Missing scan response')
       if (result) {
         store.setResult(result)
         store.setStatus('complete')
@@ -113,6 +114,7 @@ export function DuplicateFinderPage() {
         }
       }
     } catch {
+      toast.error(t('requestFailed'))
       store.setStatus('idle')
     }
   }
@@ -128,6 +130,7 @@ export function DuplicateFinderPage() {
     try {
       const paths = Array.from(deletingPaths)
       const result = await window.lightclean?.duplicatesDelete?.(paths, store.deleteMode)
+      if (!result) throw new Error('Missing delete response')
       if (result) {
         store.setDeleteResult(result)
         if (result.deleted > 0) {
@@ -138,7 +141,7 @@ export function DuplicateFinderPage() {
             if (!failedPaths.has(p)) successPaths.add(p)
           }
           store.removeDeletedFiles(successPaths)
-          toast.success(t('deleteSuccess', { count: result.deleted, size: formatBytes(result.spaceRecovered) }))
+          toast.success(t(store.deleteMode === 'recycle' ? 'recycleSuccess' : 'deleteSuccess', { count: result.deleted, size: formatBytes(result.spaceRecovered) }))
         }
         if (result.failed > 0) {
           const firstReason = result.errors[0]?.reason
@@ -151,6 +154,8 @@ export function DuplicateFinderPage() {
         store.setStatus('complete')
       }
     } catch {
+      toast.error(t('requestFailed'))
+    } finally {
       store.setStatus('complete')
     }
   }

@@ -40,6 +40,8 @@
   "deleting": "Deleting files…",
   "deleteComplete": "Deletion complete",
   "deleteSuccess": "Deleted {{count}} files, recovered {{size}}",
+  "recycleSuccess": "Moved {{count}} files ({{size}}) to the recycle bin. Review and empty it to free disk space.",
+  "requestFailed": "Operation failed. Please retry; if it persists, retain the error details and contact support.",
   "deleteFailed": "{{failed}} files could not be deleted",
   "openLocation": "Open file location",
   "original": "Keep",

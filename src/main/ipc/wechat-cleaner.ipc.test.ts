@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from 'fs'
+import { mkdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -8,8 +8,14 @@ vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
   shell: { showItemInFolder: vi.fn(), trashItem: vi.fn() },
 }))
+vi.mock('child_process', () => ({
+  execFile: vi.fn((_command: string, _args: string[], _options: object, callback: (error: Error | null, output: string) => void) => callback(null, '')),
+}))
 
-import { classifyWeChatMedia, normalizeRoots, rootsFromConfigDirectory, scanWeChatRoots } from './wechat-cleaner.ipc'
+import { ipcMain, shell } from 'electron'
+import { IPC } from '../../shared/channels'
+import type { WeChatDeleteResult, WeChatScanResult } from '../../shared/types'
+import { classifyWeChatMedia, isSafeWeChatMediaPath, normalizeRoots, registerWeChatCleanerIpc, rootsFromConfigDirectory, scanWeChatRoots, validateScannedMediaFile } from './wechat-cleaner.ipc'
 
 const testRoot = join(tmpdir(), `kudu-wechat-test-${process.pid}`)
 
@@ -57,12 +63,31 @@ describe('scanWeChatRoots', () => {
     expect(mediaFiles[0]).toMatchObject({ name: 'photo.jpg', category: 'image', size: 10 })
   })
 
+  it('lists old WeChat attachments but never offers databases as individual files', async () => {
+    const account = join(testRoot, 'wxid_old', 'Msg')
+    mkdirSync(join(account, 'attach'), { recursive: true })
+    writeFileSync(join(account, 'attach', 'report.pdf'), Buffer.alloc(40))
+    writeFileSync(join(account, 'MSG0.db'), Buffer.alloc(2 * 1024 * 1024))
+    writeFileSync(join(account, 'MSG0.db-wal'), Buffer.alloc(2 * 1024 * 1024))
+
+    const mediaFiles: import('../../shared/types').WeChatMediaFile[] = []
+    await scanWeChatRoots([testRoot], mediaFiles)
+    expect(mediaFiles.map((item) => item.name)).toEqual(['report.pdf'])
+  })
+
   it('classifies common media and document formats', () => {
     expect(classifyWeChatMedia('C:\\msg\\photo.JPG')).toBe('image')
     expect(classifyWeChatMedia('C:\\msg\\video\\clip.dat')).toBe('video')
     expect(classifyWeChatMedia('C:\\msg\\report.xlsx')).toBe('document')
     expect(classifyWeChatMedia('C:\\msg\\voice.mp3')).toBe('audio')
     expect(classifyWeChatMedia('C:\\msg\\archive.zip')).toBe('archive')
+  })
+
+  it('protects database sidecars as well as database files', () => {
+    expect(isSafeWeChatMediaPath('C:\\wxid\\msg\\chat.db-journal')).toBe(false)
+    expect(isSafeWeChatMediaPath('C:\\wxid\\msg\\chat.sqlite3-shm')).toBe(false)
+    expect(isSafeWeChatMediaPath('C:\\wxid\\db_storage\\photo.jpg')).toBe(false)
+    expect(isSafeWeChatMediaPath('C:\\wxid\\msg\\photo.jpg')).toBe(true)
   })
 
   it('discovers the WeChat 4 data root from the Tencent config', () => {
@@ -82,5 +107,67 @@ describe('scanWeChatRoots', () => {
     writeFileSync(join(config, 'account.ini'), 'D:\\xwechat_files')
 
     expect(rootsFromConfigDirectory(config)).toEqual(['D:\\xwechat_files'])
+  })
+
+  it('rejects a file changed since scanning and protected databases', async () => {
+    const path = join(testRoot, 'wxid', 'msg', 'photo.jpg')
+    mkdirSync(join(testRoot, 'wxid', 'msg'), { recursive: true })
+    writeFileSync(path, Buffer.alloc(10))
+    expect(await validateScannedMediaFile({ path, size: 9, modifiedAt: 0 }, [testRoot])).toMatch(/变化/)
+    expect(await validateScannedMediaFile({ path: join(testRoot, 'wxid', 'msg', 'chat.db'), size: 10, modifiedAt: 0 }, [testRoot])).toMatch(/数据库|受保护/)
+  })
+
+  it('rejects a parent symlink that escapes the verified root', async () => {
+    const outside = join(testRoot, 'outside')
+    const root = join(testRoot, 'inside')
+    mkdirSync(outside, { recursive: true })
+    mkdirSync(root, { recursive: true })
+    writeFileSync(join(outside, 'photo.jpg'), Buffer.alloc(10))
+    symlinkSync(outside, join(root, 'link'), 'junction')
+    const path = join(root, 'link', 'photo.jpg')
+    expect(await validateScannedMediaFile({ path, size: 10, modifiedAt: statSync(path).mtimeMs }, [root])).toMatch(/范围|链接/)
+  })
+
+  it('reports scan progress and can stop before traversing the next batch', async () => {
+    const media = join(testRoot, 'wxid', 'FileStorage')
+    mkdirSync(media, { recursive: true })
+    writeFileSync(join(media, 'photo.jpg'), Buffer.alloc(10))
+    let cancelled = false
+    const progress: number[] = []
+    await expect(scanWeChatRoots([testRoot], [], {
+      shouldCancel: () => cancelled,
+      onProgress: (value) => { progress.push(value.filesScanned); cancelled = true },
+    })).rejects.toThrow('扫描已取消')
+    expect(progress.some((count) => count > 0)).toBe(true)
+  })
+
+  it('opens a scanned file and reports no freed disk space when moving it to Trash', async () => {
+    const file = join(testRoot, 'wxid', 'FileStorage', 'photo.jpg')
+    mkdirSync(join(testRoot, 'wxid', 'FileStorage'), { recursive: true })
+    writeFileSync(file, Buffer.alloc(10))
+    const previousProfile = process.env.USERPROFILE
+    const previousAppData = process.env.APPDATA
+    const previousOneDrive = process.env.OneDrive
+    process.env.USERPROFILE = testRoot
+    process.env.APPDATA = join(testRoot, 'AppData')
+    delete process.env.OneDrive
+    try {
+      vi.mocked(ipcMain.handle).mockClear()
+      registerWeChatCleanerIpc(() => null)
+      const handlers = vi.mocked(ipcMain.handle).mock.calls
+      const scan = handlers.find(([channel]) => channel === IPC.WECHAT_SCAN)?.[1] as (_event: unknown, root: string) => Promise<WeChatScanResult>
+      const open = handlers.find(([channel]) => channel === IPC.WECHAT_OPEN_LOCATION)?.[1] as (_event: unknown, id: string) => void
+      const remove = handlers.find(([channel]) => channel === IPC.WECHAT_DELETE_FILES)?.[1] as (_event: unknown, ids: string[]) => Promise<WeChatDeleteResult>
+      const id = (await scan(null, testRoot)).mediaFiles[0].id
+      open(null, id)
+      expect(shell.showItemInFolder).toHaveBeenCalledWith(file)
+      const result = await remove(null, [id])
+      expect(result).toMatchObject({ deleted: 1, failed: 0, spaceRecovered: 0 })
+      expect(shell.trashItem).toHaveBeenCalledWith(file)
+    } finally {
+      if (previousProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = previousProfile
+      if (previousAppData === undefined) delete process.env.APPDATA; else process.env.APPDATA = previousAppData
+      if (previousOneDrive === undefined) delete process.env.OneDrive; else process.env.OneDrive = previousOneDrive
+    }
   })
 })

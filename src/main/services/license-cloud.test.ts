@@ -54,9 +54,19 @@ describe('online redemption binding', () => {
     expect(first.status).toBe(200)
     expect((await first.json()).success).toBe(true)
 
+    const selfRelease = await worker.fetch(new Request('https://license.test/v1/deactivate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code, deviceId: 'a'.repeat(64) }),
+    }), env)
+    expect(selfRelease.status).toBe(403)
+    expect((await selfRelease.json()).error).toContain('人工审核')
+
     const second = await activate('b'.repeat(64))
     expect(second.status).toBe(409)
-    expect((await second.json()).error).toContain('已绑定另一台电脑')
+    const secondBody = await second.json()
+    expect(secondBody.error).toContain('已绑定另一台电脑')
+    expect(secondBody.error).toContain('人工审核')
 
     const original = await activate('a'.repeat(64))
     expect(original.status).toBe(200)

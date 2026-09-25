@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   CalendarDays,
   Check,
+  ClipboardCopy,
   Clock3,
   Cloud,
   Database,
@@ -13,7 +14,6 @@ import {
   RefreshCw,
   Save,
   ShieldCheck,
-  Unlink,
   UserCog,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -108,13 +108,14 @@ export function LicensePage() {
     }
   }
 
-  const deactivate = async () => {
-    if (!confirm('确定解除当前电脑的授权吗？解除后可在新电脑上输入原兑换码，每年最多换绑2次。')) return
-    const result = await window.lightclean.licenseDeactivate()
-    setStatus(result.status)
-    result.success
-      ? toast.success('本机授权已解除，可以在新电脑输入原兑换码。')
-      : toast.error(result.error ?? '移除授权失败。')
+  const copyDeviceRequest = async () => {
+    if (!status?.deviceRequestCode) return
+    try {
+      await navigator.clipboard.writeText(status.deviceRequestCode)
+      toast.success('设备申请码已复制，请连同订单号和兑换码发给卖家。')
+    } catch {
+      toast.error('复制失败，请手动选中设备申请码后复制。')
+    }
   }
 
   return (
@@ -215,7 +216,7 @@ export function LicensePage() {
               '激活成功后可连续离线使用14天',
               '安装包可以分享，但兑换码不能同时绑定多台电脑',
               '到期不会自动删除文件或执行任何清理',
-              '原电脑解除授权后可在新电脑重新激活',
+              '更换电脑须联系卖家人工审核，不能自行解绑',
             ].map((item) => (
               <div key={item} className="flex items-center gap-2.5 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full"
@@ -226,13 +227,23 @@ export function LicensePage() {
               </div>
             ))}
           </div>
-          {status?.plan && status.plan !== 'trial' && (
-            <button onClick={() => void deactivate()}
-              className="mt-6 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-medium"
-              style={{ border: '1px solid rgba(239,68,68,.25)', color: '#ef4444' }}>
-              <Unlink className="h-3.5 w-3.5" /> 移除本机授权
+          <div className="mt-6 rounded-xl p-4" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-medium)' }}>
+            <p className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>换机必须联系卖家人工审核</p>
+            <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>
+              请在新电脑打开此页，把订单号、原兑换码和下方设备申请码发给卖家。审核通过后，在新电脑输入原兑换码即可激活。
+            </p>
+            <textarea readOnly value={status?.deviceRequestCode ?? ''} aria-label="当前电脑设备申请码"
+              className="mt-3 h-16 w-full resize-none rounded-lg p-2 font-mono text-[10px]"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }} />
+            <button onClick={() => void copyDeviceRequest()} disabled={!status?.deviceRequestCode}
+              className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+              style={{ border: '1px solid var(--border-medium)', color: 'var(--text-secondary)' }}>
+              <ClipboardCopy className="h-3.5 w-3.5" /> 复制设备申请码
             </button>
-          )}
+            <p className="mt-2 text-[10px] leading-5" style={{ color: 'var(--text-muted)' }}>
+              换机获批后，旧电脑已取得的离线凭证在剩余有效期内仍可能使用，最长 14 天。
+            </p>
+          </div>
         </section>
       </div>
 

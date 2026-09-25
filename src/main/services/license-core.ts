@@ -64,7 +64,7 @@ export function buildLicenseStatus(
       daysRemaining: null,
       canUsePaidFeatures: false,
       deviceIdSuffix,
-      message: messageOverride ?? '请复制设备申请码，向卖家换取本机激活码。',
+      message: messageOverride ?? '请向卖家获取兑换码，输入后即可激活当前电脑。',
       deviceRequestCode,
       activationMode: 'offline',
       offlineUntil: null,
@@ -86,7 +86,7 @@ export function buildLicenseStatus(
     state = 'expired'
     allowed = false
     message = stored.plan === 'trial'
-      ? '免费试用已结束，请使用本机激活码继续使用。'
+      ? '免费试用已结束，请输入卖家提供的兑换码继续使用。'
       : '当前套餐已到期，续费后即可继续使用。'
   } else if (offlineExpired) {
     state = 'needs_activation'

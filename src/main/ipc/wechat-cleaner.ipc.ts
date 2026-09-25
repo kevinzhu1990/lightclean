@@ -1,12 +1,12 @@
 import { execFile } from 'child_process'
 import { createHash } from 'crypto'
 import { lstatSync, readFileSync, readdirSync } from 'fs'
-import { lstat, readdir } from 'fs/promises'
+import { lstat, readdir, realpath } from 'fs/promises'
 import { homedir } from 'os'
 import { basename, isAbsolute, join, relative, resolve, win32 } from 'path'
 import { dialog, ipcMain, shell } from 'electron'
 import { IPC } from '../../shared/channels'
-import type { WeChatDataKind, WeChatDataLocation, WeChatDeleteResult, WeChatMediaCategory, WeChatMediaFile, WeChatScanResult } from '../../shared/types'
+import type { WeChatDataKind, WeChatDataLocation, WeChatDeleteResult, WeChatMediaCategory, WeChatMediaFile, WeChatScanProgress, WeChatScanResult } from '../../shared/types'
 import type { WindowGetter } from './index'
 
 const CANDIDATE_DIRS: Record<string, { kind: WeChatDataKind; label: string }> = {
@@ -19,6 +19,16 @@ const CANDIDATE_DIRS: Record<string, { kind: WeChatDataKind; label: string }> = 
 let lastScan = new Map<string, WeChatDataLocation>()
 let lastMediaScan = new Map<string, WeChatMediaFile>()
 let lastRoots: string[] = []
+let scanEpoch = 0
+
+interface ScanOptions {
+  shouldCancel?: () => boolean
+  onProgress?: (progress: WeChatScanProgress) => void
+}
+
+function checkScanCancelled(options: ScanOptions): void {
+  if (options.shouldCancel?.()) throw new Error('扫描已取消')
+}
 
 function addConfiguredRoot(roots: string[], configuredPath: string): void {
   const cleaned = configuredPath.replace(/^\uFEFF/, '').replace(/\0/g, '').trim().replace(/^['"]|['"]$/g, '')
@@ -105,10 +115,17 @@ export function classifyWeChatMedia(path: string): WeChatMediaCategory {
   return 'other'
 }
 
+const PROTECTED_FILE_SUFFIXES = /\.(?:db3?|sqlite3?|ldb|edb)(?:-(?:wal|shm|journal))?$/i
+export function isSafeWeChatMediaPath(path: string): boolean {
+  return !PROTECTED_FILE_SUFFIXES.test(path) && !/[\\/]db_storage[\\/]/i.test(path)
+}
+
 async function directorySize(
   root: string,
   account = '',
   collectedFiles?: WeChatMediaFile[],
+  options: ScanOptions = {},
+  progress: WeChatScanProgress = { filesScanned: 0, currentPath: '' },
 ): Promise<{ size: number; modifiedAt: number }> {
   let size = 0
   let modifiedAt = 0
@@ -116,6 +133,7 @@ async function directorySize(
   // Work in bounded batches so large chat folders do not freeze Electron's
   // main process and the renderer can keep showing scan progress.
   while (directories.length) {
+    checkScanCancelled(options)
     const batch = directories.splice(0, 16)
     const listings = await Promise.all(batch.map(async (current) => {
       try { return { current, entries: await readdir(current, { withFileTypes: true }) } }
@@ -131,6 +149,7 @@ async function directorySize(
       }
     }
     for (let index = 0; index < files.length; index += 64) {
+      checkScanCancelled(options)
       const fileBatch = files.slice(index, index + 64)
       const stats = await Promise.all(fileBatch.map(async (file) => {
         try { return await lstat(file) } catch { return null }
@@ -142,6 +161,7 @@ async function directorySize(
         modifiedAt = Math.max(modifiedAt, stat.mtimeMs)
         if (collectedFiles) {
           const file = fileBatch[statIndex]
+          if (!isSafeWeChatMediaPath(file)) continue
           const category = classifyWeChatMedia(file)
           // WeChat stores tens of thousands of tiny extensionless fragments in
           // attach. Listing them individually makes the page unusable and has
@@ -158,6 +178,10 @@ async function directorySize(
           })
         }
       }
+      progress.filesScanned += fileBatch.length
+      progress.currentPath = root
+      options.onProgress?.({ ...progress })
+      checkScanCancelled(options)
     }
   }
   return { size, modifiedAt }
@@ -167,14 +191,17 @@ function makeId(path: string): string {
   return createHash('sha256').update(resolve(path)).digest('hex').slice(0, 24)
 }
 
-export async function scanWeChatRoots(roots: string[], mediaFiles?: WeChatMediaFile[]): Promise<WeChatDataLocation[]> {
+export async function scanWeChatRoots(roots: string[], mediaFiles?: WeChatMediaFile[], options: ScanOptions = {}): Promise<WeChatDataLocation[]> {
   const found: WeChatDataLocation[] = []
   const seen = new Set<string>()
+  const progress: WeChatScanProgress = { filesScanned: 0, currentPath: '' }
   for (const root of roots) {
+    checkScanCancelled(options)
     const rootStat = safeStat(root)
     if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) continue
     const queue: Array<{ path: string; depth: number }> = [{ path: resolve(root), depth: 0 }]
     while (queue.length) {
+      checkScanCancelled(options)
       const current = queue.shift()!
       let entries
       try { entries = readdirSync(current.path, { withFileTypes: true }) } catch { continue }
@@ -196,7 +223,9 @@ export async function scanWeChatRoots(roots: string[], mediaFiles?: WeChatMediaF
           const { size, modifiedAt } = await directorySize(
             full,
             account,
-            definition.kind === 'media' ? mediaFiles : undefined,
+            definition.kind === 'media' || entry.name.toLowerCase() === 'msg' || entry.name.toLowerCase() === 'messagetemp' ? mediaFiles : undefined,
+            options,
+            progress,
           )
           found.push({
             id: makeId(full),
@@ -224,6 +253,28 @@ function isInsideRoots(path: string, roots: string[]): boolean {
   })
 }
 
+export async function validateScannedMediaFile(
+  file: Pick<WeChatMediaFile, 'path' | 'size' | 'modifiedAt'>,
+  roots: string[],
+): Promise<string | null> {
+  if (!isSafeWeChatMediaPath(file.path)) return '聊天数据库或受保护文件不可清理。'
+  if (!isInsideRoots(file.path, roots)) return '文件已超出安全扫描范围。'
+  let stat
+  try { stat = await lstat(file.path) } catch { return '文件已不存在，请重新扫描。' }
+  if (!stat.isFile() || stat.isSymbolicLink()) return '链接或非普通文件不可清理。'
+  if (stat.size !== file.size || Math.abs(stat.mtimeMs - file.modifiedAt) > 1) return '文件在扫描后发生变化，请重新扫描。'
+  try {
+    const resolvedFile = await realpath(file.path)
+    const resolvedRoots = await Promise.all(roots.map(async (root) => {
+      try { return await realpath(root) } catch { return null }
+    }))
+    if (!isInsideRoots(resolvedFile, resolvedRoots.filter((root): root is string => !!root))) {
+      return '文件路径包含跳出安全范围的链接。'
+    }
+  } catch { return '无法核对文件真实位置，请重新扫描。' }
+  return null
+}
+
 async function isWeChatRunning(): Promise<boolean> {
   if (process.platform !== 'win32' && process.platform !== 'darwin') return false
   return new Promise((resolveResult) => {
@@ -239,12 +290,31 @@ async function isWeChatRunning(): Promise<boolean> {
   })
 }
 
-async function scan(customRoot?: string): Promise<WeChatScanResult> {
+async function scan(customRoot?: string, onProgress?: ScanOptions['onProgress']): Promise<WeChatScanResult> {
+  const run = ++scanEpoch
+  let lastProgressAt = 0
   const roots = [...defaultRoots()]
   if (customRoot && typeof customRoot === 'string') roots.push(resolve(customRoot))
-  lastRoots = normalizeRoots(roots)
+  const normalizedRoots = normalizeRoots(roots)
   const mediaFiles: WeChatMediaFile[] = []
-  const locations = await scanWeChatRoots(lastRoots, mediaFiles)
+  let locations: WeChatDataLocation[]
+  try {
+    locations = await scanWeChatRoots(normalizedRoots, mediaFiles, {
+      shouldCancel: () => run !== scanEpoch,
+      onProgress: (progress) => {
+        const now = Date.now()
+        if (run === scanEpoch && now - lastProgressAt >= 100) {
+          lastProgressAt = now
+          onProgress?.(progress)
+        }
+      },
+    })
+  } catch (error) {
+    if (run !== scanEpoch) return { locations: [], mediaFiles: [], roots: normalizedRoots, totalSize: 0, weChatRunning: false, cancelled: true }
+    throw error
+  }
+  if (run !== scanEpoch) return { locations: [], mediaFiles: [], roots: normalizedRoots, totalSize: 0, weChatRunning: false, cancelled: true }
+  lastRoots = normalizedRoots
   lastScan = new Map(locations.map((location) => [location.id, location]))
   lastMediaScan = new Map(mediaFiles.map((file) => [file.id, file]))
   return {
@@ -258,7 +328,11 @@ async function scan(customRoot?: string): Promise<WeChatScanResult> {
 
 export function registerWeChatCleanerIpc(getWindow: WindowGetter): void {
   ipcMain.handle(IPC.WECHAT_SCAN, (_event, customRoot?: unknown) =>
-    scan(typeof customRoot === 'string' ? customRoot : undefined))
+    scan(typeof customRoot === 'string' ? customRoot : undefined, (progress) => {
+      getWindow()?.webContents.send(IPC.WECHAT_SCAN_PROGRESS, progress)
+    }))
+
+  ipcMain.handle(IPC.WECHAT_CANCEL, () => { scanEpoch++ })
 
   ipcMain.handle(IPC.WECHAT_SELECT_ROOT, async () => {
     const win = getWindow()
@@ -274,8 +348,8 @@ export function registerWeChatCleanerIpc(getWindow: WindowGetter): void {
 
   ipcMain.handle(IPC.WECHAT_OPEN_LOCATION, (_event, id: unknown) => {
     if (typeof id !== 'string') return
-    const location = lastScan.get(id)
-    if (location) shell.showItemInFolder(location.path)
+    const path = lastScan.get(id)?.path ?? lastMediaScan.get(id)?.path
+    if (path) shell.showItemInFolder(path)
   })
 
   ipcMain.handle(IPC.WECHAT_DELETE, async (_event, ids: unknown): Promise<WeChatDeleteResult> => {
@@ -300,7 +374,7 @@ export function registerWeChatCleanerIpc(getWindow: WindowGetter): void {
       try {
         await shell.trashItem(location.path)
         result.deleted++
-        result.spaceRecovered += location.size
+        // Moving to Trash does not free disk space until Trash is emptied.
         lastScan.delete(id)
       } catch (error) {
         result.failed++
@@ -318,21 +392,21 @@ export function registerWeChatCleanerIpc(getWindow: WindowGetter): void {
     }
     for (const id of [...new Set(ids as string[])]) {
       const file = lastMediaScan.get(id)
-      if (!file || !isInsideRoots(file.path, lastRoots)) {
+      if (!file) {
         result.failed++
         result.errors.push({ id, reason: '该文件不在本次安全扫描结果中。' })
         continue
       }
-      const stat = safeStat(file.path)
-      if (!stat?.isFile() || stat.isSymbolicLink()) {
+      const unsafeReason = await validateScannedMediaFile(file, lastRoots)
+      if (unsafeReason) {
         result.failed++
-        result.errors.push({ id, reason: '文件已不存在或不适合清理。' })
+        result.errors.push({ id, reason: unsafeReason })
         continue
       }
       try {
         await shell.trashItem(file.path)
         result.deleted++
-        result.spaceRecovered += file.size
+        // Moving to Trash does not free disk space until Trash is emptied.
         lastMediaScan.delete(id)
       } catch (error) {
         result.failed++

@@ -271,6 +271,8 @@ export const IPC = {
 
   // WeChat history cleaner
   WECHAT_SCAN: 'wechat:scan',
+  WECHAT_SCAN_PROGRESS: 'wechat:scan-progress',
+  WECHAT_CANCEL: 'wechat:cancel',
   WECHAT_SELECT_ROOT: 'wechat:select-root',
   WECHAT_DELETE: 'wechat:delete',
   WECHAT_DELETE_FILES: 'wechat:delete-files',

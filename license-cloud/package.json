@@ -9,7 +9,8 @@
     "db:create": "wrangler d1 create lightclean-license",
     "db:migrate": "wrangler d1 execute lightclean-license --remote --file=./schema.sql",
     "db:export-codes": "node export-local-codes.mjs",
-    "db:import-codes": "wrangler d1 execute lightclean-license --remote --file=./import-codes.sql"
+    "db:import-codes": "wrangler d1 execute lightclean-license --remote --file=./import-codes.sql",
+    "transfer:approve": "node approve-transfer.mjs"
   },
   "devDependencies": {
     "better-sqlite3": "^12.11.1",

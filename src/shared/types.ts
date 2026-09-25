@@ -1656,6 +1656,12 @@ export interface WeChatScanResult {
   roots: string[]
   totalSize: number
   weChatRunning: boolean
+  cancelled?: boolean
+}
+
+export interface WeChatScanProgress {
+  filesScanned: number
+  currentPath: string
 }
 
 export interface WeChatDeleteResult {

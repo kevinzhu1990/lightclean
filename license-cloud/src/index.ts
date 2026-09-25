@@ -45,11 +45,6 @@ interface ActivationRequest {
   arch?: unknown
 }
 
-interface DeactivationRequest {
-  code?: unknown
-  deviceId?: unknown
-}
-
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
@@ -226,7 +221,7 @@ async function activate(request: Request, env: Env): Promise<Response> {
   if (row.device_id && row.device_id !== body.deviceId) {
     return json({
       success: false,
-      error: `该兑换码已绑定另一台电脑。如需换机，请先在原电脑解除授权或联系卖家。`,
+      error: '该兑换码已绑定另一台电脑。换机请联系卖家人工审核。',
       boundDeviceSuffix: row.device_suffix,
     }, 409)
   }
@@ -296,43 +291,6 @@ async function activate(request: Request, env: Env): Promise<Response> {
   })
 }
 
-async function deactivate(request: Request, env: Env): Promise<Response> {
-  let body: DeactivationRequest
-  try {
-    body = await request.json() as DeactivationRequest
-  } catch {
-    return json({ success: false, error: '请求格式不正确。' }, 400)
-  }
-  if (typeof body.code !== 'string' || !isDeviceId(body.deviceId)) {
-    return json({ success: false, error: '授权信息不完整。' }, 400)
-  }
-
-  const codeHash = await sha256(normalizeCode(body.code))
-  const row = await readCode(env, codeHash)
-  if (!row || row.device_id !== body.deviceId) {
-    return json({ success: false, error: '当前电脑没有可解除的授权。' }, 404)
-  }
-
-  const year = new Date().getUTCFullYear()
-  const currentCount = row.rebind_year === year ? row.rebind_count : 0
-  if (currentCount >= 2) {
-    return json({ success: false, error: '本年度换绑次数已用完，请联系卖家处理。' }, 403)
-  }
-
-  const result = await env.LICENSE_DB.prepare(`
-    UPDATE codes
-    SET device_id = NULL,
-        device_suffix = NULL,
-        current_activation_id = NULL,
-        last_seen_at = ?,
-        rebind_year = ?,
-        rebind_count = ?
-    WHERE code_hash = ? AND device_id = ?
-  `).bind(new Date().toISOString(), year, currentCount + 1, codeHash, body.deviceId).run()
-  if (!result.success) return json({ success: false, error: '解除授权失败，请稍后重试。' }, 503)
-  return json({ success: true, message: '当前电脑授权已解除，可在新电脑上重新激活。' })
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: JSON_HEADERS })
@@ -344,7 +302,10 @@ export default {
       return activate(request, env)
     }
     if (request.method === 'POST' && url.pathname === '/v1/deactivate') {
-      return deactivate(request, env)
+      // Older clients still call this route. Never release a binding from a
+      // client request: only the seller's authenticated D1 transfer tool can
+      // assign a license to a reviewed replacement device.
+      return json({ success: false, error: '换机必须联系卖家人工审核，不能在客户端自行解除授权。' }, 403)
     }
     return json({ success: false, error: '接口不存在。' }, 404)
   },

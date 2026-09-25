@@ -90,6 +90,7 @@ import type {
   ContextMenuApplyResult,
   ContextMenuScanResult,
   WeChatScanResult,
+  WeChatScanProgress,
   WeChatDeleteResult,
   LicenseActionResult,
   LicenseAdminIssueResult,
@@ -136,6 +137,12 @@ const api = {
   // WeChat history cleaner
   weChatScan: (customRoot?: string): Promise<WeChatScanResult> =>
     ipcRenderer.invoke(IPC.WECHAT_SCAN, customRoot),
+  weChatCancel: (): Promise<void> => ipcRenderer.invoke(IPC.WECHAT_CANCEL),
+  onWeChatScanProgress: (callback: (progress: WeChatScanProgress) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: WeChatScanProgress) => callback(progress)
+    ipcRenderer.on(IPC.WECHAT_SCAN_PROGRESS, handler)
+    return () => { ipcRenderer.removeListener(IPC.WECHAT_SCAN_PROGRESS, handler) }
+  },
   weChatSelectRoot: (): Promise<string | null> =>
     ipcRenderer.invoke(IPC.WECHAT_SELECT_ROOT),
   weChatDelete: (ids: string[]): Promise<WeChatDeleteResult> =>

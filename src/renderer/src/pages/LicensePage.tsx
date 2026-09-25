@@ -204,7 +204,7 @@ export function LicensePage() {
             <ShieldCheck className="h-5 w-5" style={{ color: '#22c55e' }} />
             <div>
               <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>授权说明</h2>
-              <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>仅上传兑换码摘要和匿名设备标识，不读取个人文件</p>
+              <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>激活时发送兑换码和匿名设备标识；服务器只保存兑换码摘要，不读取个人文件</p>
             </div>
           </div>
           <div className="mt-5 space-y-3">

@@ -14,6 +14,20 @@ import {
 const now = new Date('2026-07-23T00:00:00.000Z')
 
 describe('license core', () => {
+  it('directs trial users to the single redemption code flow', () => {
+    const notStarted = buildLicenseStatus(null, 'AB12CD34', '', now)
+    expect(notStarted.message).toContain('兑换码')
+    expect(notStarted.message).not.toContain('设备申请码')
+
+    const expired = buildLicenseStatus({
+      plan: 'trial',
+      startedAt: addDays(now, -31).toISOString(),
+      expiresAt: addDays(now, -1).toISOString(),
+    }, 'AB12CD34', '', now)
+    expect(expired.message).toContain('兑换码')
+    expect(expired.message).not.toContain('本机激活码')
+  })
+
   it('starts a full 30 day trial', () => {
     const stored: StoredLicense = {
       plan: 'trial',

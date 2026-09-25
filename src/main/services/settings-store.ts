@@ -375,21 +375,10 @@ export function setOnboardingComplete(value: boolean): Promise<void> {
 export function getMachineId(): string {
   const data = readStore()
   if (data.machineId) return data.machineId
-  // First call ever — generate and persist (uses lock to avoid concurrent writes)
-  const id = randomUUID()
-  const prev = writeLock
-  let unlock: () => void
-  writeLock = new Promise<void>((r) => { unlock = r })
-  prev.then(() => {
-    try {
-      const fresh = readStore()
-      if (!fresh.machineId) {
-        fresh.machineId = id
-        writeStore(fresh)
-      }
-    } finally {
-      unlock!()
-    }
-  })
-  return id
+  // Callers need a stable identifier immediately, including consecutive
+  // calls during first-run activation. Pending settings writes read the latest
+  // store when their turn begins, so persisting synchronously is safe here.
+  data.machineId = randomUUID()
+  writeStore(data)
+  return data.machineId
 }

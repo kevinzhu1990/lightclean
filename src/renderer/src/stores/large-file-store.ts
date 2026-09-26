@@ -56,11 +56,13 @@ export const useLargeFileStore = create<LargeFileState>((set, get) => ({
   setExcludePatterns: (excludePatterns) => set({ excludePatterns }),
   setStatus: (status) => set({ status }),
   setProgress: (progress) => set({ progress }),
-  setResult: (result) => set({ result }),
+  setResult: (result) => set({ result, selectedPaths: new Set() }),
   setDeleteMode: (deleteMode) => set({ deleteMode }),
   setDeleteResult: (deleteResult) => set({ deleteResult }),
   togglePath: (path) =>
     set((s) => {
+      const file = s.result?.files.find((f) => f.path === path)
+      if (!file || s.result?.cancelled || file.safety?.level === 'protected') return s
       const next = new Set(s.selectedPaths)
       if (next.has(path)) next.delete(path)
       else next.add(path)
@@ -68,9 +70,11 @@ export const useLargeFileStore = create<LargeFileState>((set, get) => ({
     }),
   selectAll: () => {
     const result = get().result
-    if (!result) return
+    if (!result || result.cancelled) return
     const selected = new Set<string>()
-    for (const file of result.files) selected.add(file.path)
+    for (const file of result.files) {
+      if (file.safety?.level === 'candidate') selected.add(file.path)
+    }
     set({ selectedPaths: selected })
   },
   deselectAll: () => set({ selectedPaths: new Set() }),

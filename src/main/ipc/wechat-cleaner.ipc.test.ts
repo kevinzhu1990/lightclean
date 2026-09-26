@@ -3,6 +3,12 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+// Never discover the real macOS/Linux user's WeChat folders in a unit test.
+vi.mock('os', async (importOriginal) => {
+  const os = await importOriginal<typeof import('os')>()
+  return { ...os, homedir: () => join(os.tmpdir(), `kudu-wechat-test-${process.pid}`, 'home') }
+})
+
 vi.mock('electron', () => ({
   dialog: { showOpenDialog: vi.fn() },
   ipcMain: { handle: vi.fn() },

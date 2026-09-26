@@ -1395,6 +1395,8 @@ export interface LargeFileScanOptions {
 }
 
 export interface LargeFileEntry {
+  safety?: import('./large-file-safety').LargeFileSafety
+  allocatedSize?: number | null
   path: string
   name: string
   size: number

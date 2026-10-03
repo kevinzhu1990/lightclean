@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { flushCliOutput } from './services/cli-output'
 import { existsSync } from 'fs'
 import { readdir } from 'fs/promises'
 import { join } from 'path'
@@ -46,6 +47,11 @@ function log(msg: string): void {
   process.stdout.write(msg + '\n')
 }
 
+async function exitCli(code: number): Promise<void> {
+  await flushCliOutput()
+  app.exit(code)
+}
+
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -54,12 +60,12 @@ function formatBytes(bytes: number): string {
 }
 
 function cliLog(ctx: CliContext, msg: string): void {
-  if (ctx.verbosity === 'quiet') return
+  if (ctx.verbosity === 'quiet' || ctx.json) return
   process.stdout.write(msg + '\n')
 }
 
 function cliVerbose(ctx: CliContext, msg: string): void {
-  if (ctx.verbosity !== 'verbose') return
+  if (ctx.verbosity !== 'verbose' || ctx.json) return
   process.stdout.write(`  [verbose] ${msg}\n`)
 }
 
@@ -1460,7 +1466,7 @@ async function handleMetricsServer(args: string[], ctx: CliContext): Promise<voi
 
   const shutdown = (): void => {
     server.close()
-    app.exit(ExitCode.SUCCESS)
+    void exitCli(ExitCode.SUCCESS)
   }
   process.on('SIGTERM', shutdown)
   process.on('SIGINT', shutdown)
@@ -1591,8 +1597,8 @@ async function runLegacyScanClean(categories: string[], doClean: boolean, ctx: C
 export async function runCli(): Promise<void> {
   const parsed = parseCliArgs(process.argv)
 
-  if (parsed.help) { printHelp(); app.exit(ExitCode.SUCCESS); return }
-  if (parsed.version) { log(`LightClean v${app.getVersion()}`); app.exit(ExitCode.SUCCESS); return }
+  if (parsed.help) { printHelp(); await exitCli(ExitCode.SUCCESS); return }
+  if (parsed.version) { log(`LightClean v${app.getVersion()}`); await exitCli(ExitCode.SUCCESS); return }
 
   const { ctx } = parsed
 
@@ -1601,7 +1607,7 @@ export async function runCli(): Promise<void> {
   if (cliArgs.includes('--verbose') && (cliArgs.includes('--quiet') || cliArgs.includes('-q'))) {
     if (ctx.json) log(JSON.stringify({ error: 'invalid_args', message: '--verbose and --quiet are mutually exclusive' }))
     else process.stderr.write('Error: --verbose and --quiet are mutually exclusive.\n')
-    app.exit(ExitCode.INVALID_ARGS)
+    await exitCli(ExitCode.INVALID_ARGS)
     return
   }
 
@@ -1617,7 +1623,7 @@ export async function runCli(): Promise<void> {
     }
     const doClean = parsed.hasCleanFlag || parsed.command === 'clean'
     const exitCode = await runLegacyScanClean(categories, doClean, ctx)
-    app.exit(exitCode)
+    await exitCli(exitCode)
     return
   }
 
@@ -1651,16 +1657,16 @@ export async function runCli(): Promise<void> {
           log(`Unknown command: ${parsed.command}`)
           log('Run lightclean --cli --help for usage information.')
         }
-        app.exit(ExitCode.UNKNOWN_COMMAND)
+        await exitCli(ExitCode.UNKNOWN_COMMAND)
         return
     }
-    app.exit(exitCode ?? ExitCode.SUCCESS)
+    await exitCli(exitCode ?? ExitCode.SUCCESS)
   } catch (err: any) {
     if (ctx.json) {
       log(JSON.stringify({ error: err.message }))
     } else {
       process.stderr.write(`Error: ${err.message}\n`)
     }
-    app.exit(ExitCode.GENERAL_ERROR)
+    await exitCli(ExitCode.GENERAL_ERROR)
   }
 }

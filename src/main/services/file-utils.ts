@@ -1,6 +1,6 @@
-import { rm, stat, lstat, readdir, open, writeFile } from 'fs/promises'
+import { rm, stat, lstat, realpath, readdir, open, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, relative, isAbsolute } from 'path'
 import { randomUUID, randomBytes } from 'crypto'
 import { shell } from 'electron'
 import type { ScanItem, ScanResult, CleanResult } from '../../shared/types'
@@ -31,7 +31,7 @@ export function isExcluded(filePath: string, exclusions: string[]): boolean {
       if (normalized.endsWith(pattern.substring(1))) return true
     } else {
       // Path prefix match
-      if (normalized.startsWith(pattern) || normalized === pattern) return true
+      if (normalized === pattern || normalized.startsWith(pattern.endsWith(sep) ? pattern : pattern + sep)) return true
     }
   }
   return false
@@ -125,13 +125,20 @@ export async function cleanItems(
 ): Promise<CleanResult> {
   // Validate input is a string array
   const validIds = Array.isArray(itemIds)
-    ? itemIds.filter((v): v is string => typeof v === 'string')
+    ? [...new Set(itemIds.filter((v): v is string => typeof v === 'string'))]
     : []
   const items = getCachedItems(validIds)
   let totalCleaned = 0
   let filesDeleted = 0
   let filesSkipped = 0
   const errors: CleanResult['errors'] = []
+  const cachedIds = new Set(items.map(item => item.id))
+  for (const id of validIds) {
+    if (!cachedIds.has(id)) {
+      filesSkipped++
+      errors.push({ path: id, reason: '扫描记录已失效，请重新扫描' })
+    }
+  }
   let lastReport = 0
 
   for (const item of items) {
@@ -139,6 +146,25 @@ export async function cleanItems(
       filesSkipped++
       errors.push({ path: item.path, reason: '安全保护：该项目禁止自动清理' })
       continue
+    }
+    if (item.scanIdentity) {
+      try {
+        const current = await lstat(item.path)
+        const canonical = await realpath(item.path)
+        const identity = item.scanIdentity
+        const rel = relative(identity.root, canonical)
+        if (!current.isFile() || current.isSymbolicLink() || canonical !== identity.realPath ||
+          rel === '..' || rel.startsWith('..' + (process.platform === 'win32' ? '\\' : '/')) || isAbsolute(rel) ||
+          current.size !== identity.size || current.mtimeMs !== identity.modified ||
+          current.ino !== identity.ino || current.dev !== identity.dev ||
+          isExcluded(item.path, getSettings().exclusions)) {
+          throw new Error('扫描后文件已变化或被排除，请重新扫描')
+        }
+      } catch {
+        filesSkipped++
+        errors.push({ path: item.path, reason: '扫描后文件已变化或无法访问，请重新扫描' })
+        continue
+      }
     }
     const result = await safeDelete(item.path, mode)
     if (result.success) {
@@ -168,50 +194,65 @@ export async function scanDirectory(
   dirPath: string,
   category: string,
   subcategory: string,
-  skipRecentMinutes = 60
+  skipRecentMinutes = getSettings().cleaner.skipRecentMinutes ?? 60
 ): Promise<ScanResult> {
   const items: ScanItem[] = []
   let totalSize = 0
-  const cutoff = Date.now() - skipRecentMinutes * 60 * 1000
-  const MAX_ITEMS = 5000
+  const cutoff = Date.now() - Math.max(0, skipRecentMinutes) * 60 * 1000
+  const MAX_ITEMS = 50000
+  const MAX_VISITED = 200000
   const exclusions = getSettings().exclusions
-
+  const scanWarnings: NonNullable<ScanResult['scanWarnings']> = []
+  const warn = (path: string, error: any) => {
+    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return
+    if (scanWarnings.length < 100) scanWarnings.push({ path, reason: error?.code === 'EACCES' || error?.code === 'EPERM' ? 'permission-denied' : 'scan-failed' })
+  }
+  let visited = 0
   try {
-    const entries = await readdir(dirPath, { withFileTypes: true })
-
-    for (const entry of entries) {
-      if (items.length >= MAX_ITEMS) break
-      if (entry.isSymbolicLink()) continue
-      const fullPath = join(dirPath, entry.name)
-
-      // Check exclusions
-      if (isExcluded(fullPath, exclusions)) continue
-
-      try {
-        const stats = await stat(fullPath)
-
-        if (stats.mtimeMs > cutoff) continue
-
-        const size = stats.isDirectory() ? await getDirectorySize(fullPath, 2) : stats.size
-
-        const item: ScanItem = {
-          id: randomUUID(),
-          path: fullPath,
-          size,
-          category,
-          subcategory,
-          lastModified: stats.mtimeMs,
-          selected: true
+    const rootStats = await lstat(dirPath)
+    if (!rootStats.isSymbolicLink() && rootStats.isDirectory() && !isExcluded(dirPath, exclusions)) {
+      const canonicalRoot = await realpath(dirPath)
+      const directories = [dirPath]
+      scan: while (directories.length) {
+        const directory = directories.pop()!
+        try {
+          // Re-check queued directories so a replaced symlink cannot redirect traversal.
+          const currentDir = await lstat(directory)
+          if (!currentDir.isDirectory() || currentDir.isSymbolicLink()) continue
+          const resolvedDir = await realpath(directory)
+          const dirRelative = relative(canonicalRoot, resolvedDir)
+          if (dirRelative === '..' || dirRelative.startsWith('..' + (process.platform === 'win32' ? '\\' : '/')) || isAbsolute(dirRelative)) continue
+          const entries = await readdir(directory, { withFileTypes: true })
+          for (const entry of entries) {
+            if (++visited > MAX_VISITED || items.length >= MAX_ITEMS) {
+              scanWarnings.push({ path: dirPath, reason: 'limit-reached' })
+              break scan
+            }
+            if (entry.isSymbolicLink()) continue
+            const fullPath = join(directory, entry.name)
+            if (isExcluded(fullPath, exclusions)) continue
+            try {
+              const stats = await lstat(fullPath)
+              if (stats.isSymbolicLink()) continue
+              if (stats.isDirectory()) { directories.push(fullPath); continue }
+              if (!stats.isFile() || (skipRecentMinutes > 0 && stats.mtimeMs > cutoff)) continue
+              const canonical = await realpath(fullPath)
+              const rel = relative(canonicalRoot, canonical)
+              if (rel === '..' || rel.startsWith('..' + (process.platform === 'win32' ? '\\' : '/')) || isAbsolute(rel)) continue
+              items.push({ id: randomUUID(), path: fullPath, size: stats.size, category, subcategory,
+                lastModified: stats.mtimeMs, selected: true,
+                scanIdentity: { root: canonicalRoot, realPath: canonical, size: stats.size, modified: stats.mtimeMs, ino: stats.ino, dev: stats.dev },
+              })
+              totalSize += stats.size
+            } catch (error) { warn(fullPath, error) }
+          }
+        } catch (error) {
+          warn(directory, error)
         }
-
-        items.push(item)
-        totalSize += item.size
-      } catch {
-        // Skip inaccessible files
       }
     }
-  } catch {
-    // Directory doesn't exist or is inaccessible
+  } catch (error) {
+    warn(dirPath, error)
   }
 
   return {
@@ -219,7 +260,8 @@ export async function scanDirectory(
     subcategory,
     items,
     totalSize,
-    itemCount: items.length
+    itemCount: items.length,
+    ...(scanWarnings.length ? { scanWarnings } : {}),
   }
 }
 
@@ -231,15 +273,23 @@ export async function scanMultipleDirectories(
   dirPaths: string[],
   category: string,
   subcategory: string,
-  skipRecentMinutes = 60
+  skipRecentMinutes = getSettings().cleaner.skipRecentMinutes ?? 60
 ): Promise<ScanResult> {
   const allItems: ScanItem[] = []
   let totalSize = 0
+  const scanWarnings: NonNullable<ScanResult['scanWarnings']> = []
+  const seen = new Set<string>()
 
   for (const dirPath of dirPaths) {
     const result = await scanDirectory(dirPath, category, subcategory, skipRecentMinutes)
-    allItems.push(...result.items)
-    totalSize += result.totalSize
+    for (const item of result.items) {
+      const key = item.scanIdentity?.realPath || item.path
+      if (seen.has(key)) continue
+      seen.add(key)
+      allItems.push(item)
+      totalSize += item.size
+    }
+    scanWarnings.push(...(result.scanWarnings || []))
   }
 
   return {
@@ -248,6 +298,7 @@ export async function scanMultipleDirectories(
     items: allItems,
     totalSize,
     itemCount: allItems.length,
+    ...(scanWarnings.length ? { scanWarnings } : {}),
   }
 }
 
@@ -305,7 +356,7 @@ export async function scanDirectoriesAsItems(
       const stats = await lstat(dirPath)
       if (stats.isSymbolicLink()) continue
       if (!stats.isDirectory()) continue
-      const size = await getDirectorySize(dirPath, 3)
+      const size = await getDirectorySize(dirPath)
       if (size < 1024) continue
 
       items.push({
@@ -332,34 +383,38 @@ export async function scanDirectoriesAsItems(
  * ['/home/.var/app/com.spotify.Client/cache', '/home/.var/app/org.foo/cache', ...]
  * If no childSubdir, returns the original paths unchanged.
  */
-export async function resolveChildSubdirs(paths: string[], childSubdir?: string): Promise<string[]> {
+export async function resolveChildSubdirs(paths: string[], childSubdir?: string, childPrefix?: string, warnings?: NonNullable<ScanResult['scanWarnings']>): Promise<string[]> {
   if (!childSubdir) return paths
 
   const resolved: string[] = []
   for (const basePath of paths) {
     try {
-      if (!existsSync(basePath)) continue
       const children = await readdir(basePath, { withFileTypes: true })
       for (const child of children) {
-        if (child.isDirectory()) {
+        if (child.isDirectory() && (!childPrefix || child.name.startsWith(childPrefix))) {
           const subPath = join(basePath, child.name, childSubdir)
           if (existsSync(subPath)) resolved.push(subPath)
         }
       }
-    } catch { /* skip */ }
+    } catch (error: any) {
+      if (warnings && error.code !== 'ENOENT' && error.code !== 'ENOTDIR') warnings.push({ path: basePath,
+        reason: error.code === 'EACCES' || error.code === 'EPERM' ? 'permission-denied' : 'scan-failed' })
+    }
   }
   return resolved
 }
 
-export async function getDirectorySize(dirPath: string, maxDepth = 3): Promise<number> {
+export async function getDirectorySize(dirPath: string, maxDepth = Infinity): Promise<number> {
   if (maxDepth <= 0) return 0
   let size = 0
   try {
     const entries = await readdir(dirPath, { withFileTypes: true })
     for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue
       const fullPath = join(dirPath, entry.name)
       try {
-        const stats = await stat(fullPath)
+        const stats = await lstat(fullPath)
+        if (stats.isSymbolicLink()) continue
         if (stats.isDirectory()) {
           size += await getDirectorySize(fullPath, maxDepth - 1)
         } else {

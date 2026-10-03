@@ -191,15 +191,16 @@ async function scanBrowserCli(): Promise<ScanResult[]> {
     { label: 'CatsXP', ...browserPaths.catsxp, hasProfiles: true },
   ]
   for (const browser of chromiumBrowsers) {
-    if (!existsSync(browser.base)) continue
+    for (const base of new Set([browser.base, ...(browser.externalCacheBases || [])])) {
+    if (!existsSync(base)) continue
     if (browser.hasProfiles) {
-      const profiles = await getChromiumProfiles(browser.base)
+      const profiles = await getChromiumProfiles(base)
       for (const profile of profiles) {
         for (const { dir, label } of [
           { dir: browser.cache, label: 'Cache' }, { dir: browser.codeCache, label: 'Code Cache' },
           { dir: browser.gpuCache, label: 'GPU Cache' }, { dir: browser.serviceWorker, label: 'Service Worker Cache' },
         ]) {
-          const cachePath = join(browser.base, profile, dir)
+          const cachePath = join(base, profile, dir)
           if (existsSync(cachePath)) {
             const result = await scanDirectory(cachePath, category, `${browser.label} - ${profile} ${label}`)
             if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
@@ -211,12 +212,13 @@ async function scanBrowserCli(): Promise<ScanResult[]> {
         { dir: browser.cache, label: 'Cache' }, { dir: browser.codeCache, label: 'Code Cache' },
         { dir: browser.gpuCache, label: 'GPU Cache' }, { dir: browser.serviceWorker, label: 'Service Worker Cache' },
       ]) {
-        const cachePath = join(browser.base, dir)
+        const cachePath = join(base, dir)
         if (existsSync(cachePath)) {
           const result = await scanDirectory(cachePath, category, `${browser.label} - ${label}`)
           if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
         }
       }
+    }
     }
   }
   if (existsSync(browserPaths.firefox.cache)) {
@@ -267,8 +269,9 @@ async function scanApp(): Promise<ScanResult[]> {
   const category = CleanerType.App
   for (const appDef of getPlatform().paths.appPaths()) {
     try {
-      const paths = await resolveChildSubdirs(appDef.paths, appDef.childSubdir)
-      const result = await scanMultipleDirectories(paths, category, appDef.name)
+      const paths = await resolveChildSubdirs(appDef.paths, appDef.childSubdir, appDef.childPrefix)
+      const label = appDef.kind ? `${appDef.name} - ${appDef.kind === 'logs' ? 'Logs' : 'Cache'}` : appDef.name
+      const result = await scanMultipleDirectories(paths, category, label)
       if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
     } catch { /* skip */ }
   }

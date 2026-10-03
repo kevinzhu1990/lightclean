@@ -55,6 +55,8 @@
           "minItems": 1
         },
         "childSubdir": { "type": "string", "description": "If set, scan paths/*/childSubdir instead of paths directly" },
+        "childPrefix": { "type": "string", "minLength": 1, "description": "Only expand child directory names beginning with this prefix" },
+        "kind": { "type": "string", "enum": ["cache", "logs"] },
         "description": { "type": "string" }
       }
     },
@@ -69,7 +71,8 @@
           "enum": ["chrome", "edge", "brave", "opera", "operaGX", "vivaldi", "arc", "chromium", "thorium", "supermium", "helium", "cromite", "catsxp"],
           "description": "Browser identifier matching the BrowserPathConfig keys"
         },
-        "base": { "$ref": "#/definitions/TemplatePath" }
+        "base": { "$ref": "#/definitions/TemplatePath" },
+        "externalCacheBases": { "type": "array", "items": { "$ref": "#/definitions/TemplatePath" } }
       }
     },
 
@@ -143,6 +146,7 @@
       "required": ["type", "chromiumCacheDirs", "chromium", "firefox"],
       "additionalProperties": false,
       "properties": {
+        "customChromiumRoots": { "type": "array", "items": { "$ref": "#/definitions/TemplatePath" } },
         "$schema": { "type": "string" },
         "type": { "const": "browsers" },
         "chromiumCacheDirs": {

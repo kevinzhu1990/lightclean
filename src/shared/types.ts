@@ -154,6 +154,8 @@ export interface ScanItem {
   subcategory: string
   lastModified: number
   selected: boolean
+  /** Identity captured by the cache scanner, checked again before deletion. */
+  scanIdentity?: { root: string; realPath: string; size: number; modified: number; ino: number; dev: number }
   /** Safety tier used by the safe-cleaning UI and enforced again in the main process. */
   safety?: CleaningSafetyLevel
   /** Plain-language explanation shown before a user selects or cleans the item. */
@@ -171,6 +173,8 @@ export interface ScanResult {
   items: ScanItem[]
   totalSize: number
   itemCount: number
+  /** Missing paths are normal; unreadable or bounded scans are not reported as empty. */
+  scanWarnings?: Array<{ path: string; reason: 'permission-denied' | 'scan-failed' | 'limit-reached' }>
   /** Result-level safety metadata. Items may override this when necessary. */
   safety?: CleaningSafetyLevel
   cleanupReason?: string

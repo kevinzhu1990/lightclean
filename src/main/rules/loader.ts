@@ -34,10 +34,11 @@ export interface BrowserRulesJson {
     gpuCache: string
     serviceWorker: string
   }
-  chromium: Array<{ key: string; base: string }>
+  chromium: Array<{ key: string; base: string; externalCacheBases?: string[] }>
   firefox: { base: string; cache: string }
   firefoxForks?: Array<{ key: string; base: string; cache: string }>
   safari?: { cache: string } | null
+  customChromiumRoots?: string[]
 }
 
 export interface AppRulesJson {
@@ -47,6 +48,8 @@ export interface AppRulesJson {
     name: string
     paths: string[]
     childSubdir?: string
+    childPrefix?: string
+    kind?: 'cache' | 'logs'
   }>
 }
 
@@ -207,6 +210,7 @@ export function buildCleanerPaths(json: RulesJsonSet, platform: 'win32' | 'darwi
           base: resolvePath(browser.base, vars, platform),
           ...cacheDirsResolved,
         }
+        if (browser.externalCacheBases) config[browser.key].externalCacheBases = resolvePathArray(browser.externalCacheBases, vars, platform)
       }
 
       const firefoxResolved = {
@@ -227,6 +231,7 @@ export function buildCleanerPaths(json: RulesJsonSet, platform: 'win32' | 'darwi
         : null
 
       return {
+        ...(json.browsers.customChromiumRoots ? { customChromiumRoots: resolvePathArray(json.browsers.customChromiumRoots, vars, platform) } : {}),
         chrome: config.chrome,
         edge: config.edge,
         brave: config.brave,
@@ -257,6 +262,8 @@ export function buildCleanerPaths(json: RulesJsonSet, platform: 'win32' | 'darwi
           paths: resolvePathArray(a.paths, vars, platform),
         }
         if (a.childSubdir) def.childSubdir = a.childSubdir
+        if (a.childPrefix) def.childPrefix = a.childPrefix
+        if (a.kind) def.kind = a.kind
         return def
       })
     },

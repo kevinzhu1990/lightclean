@@ -121,6 +121,7 @@ const api = {
 
   // System cleaner
   systemScan: (): Promise<ScanResult[]> => ipcRenderer.invoke(IPC.SYSTEM_SCAN),
+  cleanerScanStart: (): Promise<void> => ipcRenderer.invoke(IPC.CLEANER_SCAN_START),
   systemClean: (itemIds: string[]): Promise<CleanResult> =>
     paidInvoke(IPC.SYSTEM_CLEAN, itemIds),
 

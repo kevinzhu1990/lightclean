@@ -1,5 +1,5 @@
 import { readdir } from 'fs/promises'
-import { join, relative, isAbsolute } from 'path'
+import { join, relative, isAbsolute, sep } from 'path'
 import type { AppCacheDef } from '../platform/types'
 
 /** Discover only unrecognized cache roots; recurse into partially covered namespaces. */
@@ -7,7 +7,7 @@ export async function discoverMacAppCaches(cacheRoot: string, coveredPaths: stri
   const apps: AppCacheDef[] = []
   const within = (root: string, path: string): boolean => {
     const rel = relative(root, path)
-    return rel === '' || (rel !== '..' && !rel.startsWith('../') && !isAbsolute(rel))
+    return rel === '' || (rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel))
   }
   const visit = async (root: string, depth: number): Promise<void> => {
     if (depth > 32) return

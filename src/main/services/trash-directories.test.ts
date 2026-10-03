@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm, readdir, symlink } from 'fs/promises'
 import { tmpdir } from 'os'
-import { join } from 'path'
+import { join, basename, relative } from 'path'
 import { pruneEmptyTrashDirectories, findEmptyTrashDirectories } from './trash-directories'
 
 it('discovers and removes an entirely empty folder tree, preserving excluded directories', async () => {
@@ -9,9 +9,9 @@ it('discovers and removes an entirely empty folder tree, preserving excluded dir
   try {
     await mkdir(join(root, 'package', 'folder'), { recursive: true })
     await mkdir(join(root, 'excluded'))
-    const paths = await findEmptyTrashDirectories(root, p => p.endsWith('/excluded'))
-    expect(paths.map(p => p.slice(root.length))).toEqual(['/package/folder'])
-    await pruneEmptyTrashDirectories(root, paths.map(p => join(p, 'placeholder')), p => p.endsWith('/excluded'))
+    const paths = await findEmptyTrashDirectories(root, p => basename(p) === 'excluded')
+    expect(paths.map(p => relative(root, p))).toEqual([join('package', 'folder')])
+    await pruneEmptyTrashDirectories(root, paths.map(p => join(p, 'placeholder')), p => basename(p) === 'excluded')
     expect(await readdir(root)).toEqual(['excluded'])
   } finally { await rm(root, { recursive: true, force: true }) }
 })

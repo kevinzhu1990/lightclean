@@ -136,6 +136,7 @@ export function CleanerPage({ diskCleanup = false }: CleanerPageProps) {
     const failed: string[] = []
     const skippedForElevation: string[] = []
     try {
+      await window.lightclean.cleanerScanStart()
       const scanFns: Partial<Record<CleanerType, () => Promise<ScanResult[]>>> = {
         [CleanerType.System]: () => window.lightclean.systemScan(),
         [CleanerType.Browser]: () => window.lightclean.browserScan(),
@@ -310,6 +311,7 @@ export function CleanerPage({ diskCleanup = false }: CleanerPageProps) {
   const isScanning = store.status === ScanStatus.Scanning
   const isCleaning = store.status === ScanStatus.Cleaning
   const hasResults = store.results.length > 0
+  const scanWarnings = store.results.flatMap(result => result.scanWarnings || [])
   const safetyCounts = store.results.flatMap((result) => result.items).reduce(
     (counts, item) => {
       counts[item.safety || 'confirm']++
@@ -410,6 +412,17 @@ export function CleanerPage({ diskCleanup = false }: CleanerPageProps) {
 
         {/* Item panel */}
         <div className="flex-1 min-w-0">
+          {scanWarnings.length > 0 && store.status === ScanStatus.Complete && (
+            <details className="mb-5 rounded-2xl px-4 py-3" style={{ background: 'var(--accent-muted-bg)', border: '1px solid var(--accent-muted-border)' }}>
+              <summary className="cursor-pointer text-[12px] text-amber-400">{t('scanIncomplete', { count: scanWarnings.length })}</summary>
+              <p className="mt-2 text-[12px]" style={{ color: 'var(--text-muted)' }}>{t(platform === 'darwin' ? 'scanAccessHelpMac' : 'scanAccessHelp')}</p>
+              {scanWarnings.slice(0, 20).map((warning, index) => (
+                <p key={`${warning.path}-${index}`} className="mt-1 break-all text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  {t(warning.reason === 'permission-denied' ? 'scanPermissionDenied' : warning.reason === 'limit-reached' ? 'scanLimitReached' : 'scanFailedPath')} · {warning.path}
+                </p>
+              ))}
+            </details>
+          )}
           {(isScanning || isCleaning) && store.progress && (
             <ScanProgress
               status={isScanning ? 'scanning' : 'cleaning'}

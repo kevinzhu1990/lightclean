@@ -25,6 +25,7 @@ export interface CleanTarget {
 }
 
 export interface BrowserPathConfig {
+  customChromiumRoots?: string[]
   chrome: BrowserPaths
   edge: BrowserPaths
   brave: BrowserPaths
@@ -48,6 +49,8 @@ export interface BrowserPathConfig {
 
 export interface BrowserPaths {
   base: string
+  /** macOS can keep response caches outside Application Support. */
+  externalCacheBases?: string[]
   cache: string
   codeCache: string
   gpuCache: string
@@ -60,6 +63,10 @@ export interface AppCacheDef {
   paths: string[]
   /** If set, scan paths/&ast;/childSubdir instead of paths directly (e.g. 'caches' for JetBrains on Windows) */
   childSubdir?: string
+  childPrefix?: string
+  /** Explicitly reviewed paths can be selected as ordinary cache/log files. */
+  kind?: 'cache' | 'logs'
+  reviewOnly?: boolean
 }
 
 export interface UninstallLeftoverDir {

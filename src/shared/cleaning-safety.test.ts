@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { applyCleaningSafety, classifyCleaningTarget } from './cleaning-safety'
 
 describe('cleaning safety classification', () => {
+
+  it('preserves a conservative review tier for unrecognized application caches', () => {
+    const result = applyCleaningSafety({ category: 'app', subcategory: 'Other App Cache', totalSize: 1, itemCount: 1,
+      items: [{ id: '1', path: '/home/user/Library/Caches/unknown/file', size: 1, category: 'app', subcategory: 'Other App Cache', lastModified: 0, selected: false, safety: 'confirm' }] })
+    expect(result.items[0].safety).toBe('confirm')
+    expect(result.items[0].selected).toBe(false)
+    expect(result.safety).toBe('confirm')
+  })
   it('recommends ordinary cache and temp files', () => {
     expect(classifyCleaningTarget('system', 'User Temp Files').level).toBe('recommended')
     expect(classifyCleaningTarget('browser', 'Chrome Cache').level).toBe('recommended')

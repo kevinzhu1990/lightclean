@@ -7,8 +7,12 @@ import { CleanerType } from '../../shared/enums'
 import type { ScanResult, CleanResult } from '../../shared/types'
 import { randomUUID } from 'crypto'
 import { getPlatform } from '../platform'
-import { scanDirectory, cleanItems } from '../services/file-utils'
-import { cacheItems } from '../services/scan-cache'
+import { scanDirectory, cleanItems, isExcluded } from '../services/file-utils'
+import { cacheItems, getCachedItems } from '../services/scan-cache'
+import { pruneEmptyTrashDirectories, findEmptyTrashDirectories } from '../services/trash-directories'
+import { getSettings } from '../services/settings-store'
+import { classifyCleaningTarget } from '../../shared/cleaning-safety'
+import { join } from 'path'
 import { psUtf8 } from '../services/exec-utf8'
 
 const execFileAsync = promisify(execFile)
@@ -21,6 +25,9 @@ function psArgs(script: string): string[] {
 let lastScannedSize = 0
 // macOS/Linux: track last scanned item IDs for cleanItems()
 let lastScannedItemIds: string[] = []
+let lastEmptyDirectories: string[] = []
+const keepTrashDirectory = (path: string): boolean => isExcluded(path, getSettings().exclusions) ||
+  classifyCleaningTarget(CleanerType.RecycleBin, 'Trash', path).level === 'protected'
 
 export function registerRecycleBinIpc(): void {
   ipcMain.handle(IPC.RECYCLE_BIN_SCAN, async (): Promise<ScanResult[]> => {
@@ -28,15 +35,21 @@ export function registerRecycleBinIpc(): void {
 
     if (trashPath) {
       // macOS / Linux: scan trash directory as real files
+      lastScannedItemIds = []
+      lastEmptyDirectories = []
       try {
         if (!existsSync(trashPath)) return []
         const result = await scanDirectory(trashPath, CleanerType.RecycleBin, 'Trash', 0)
+        cacheItems(result.items)
+        lastScannedItemIds = result.items.map(i => i.id)
+        lastEmptyDirectories = await findEmptyTrashDirectories(trashPath, keepTrashDirectory)
+        result.items.push(...lastEmptyDirectories.map(path => ({ id: randomUUID(), path, size: 0,
+          category: CleanerType.RecycleBin, subcategory: 'Trash', lastModified: 0, selected: false })))
+        result.itemCount = result.items.length
         if (result.items.length > 0) {
-          cacheItems(result.items)
-          lastScannedItemIds = result.items.map((i) => i.id)
           return [result]
         }
-        return []
+        return result.scanWarnings?.length ? [result] : []
       } catch {
         return []
       }
@@ -82,8 +95,11 @@ export function registerRecycleBinIpc(): void {
     if (trashPath) {
       // macOS / Linux: delete cached trash items via standard file-utils flow
       try {
+        const scannedPaths = getCachedItems(lastScannedItemIds).map(item => item.path)
         const result = await cleanItems(lastScannedItemIds, undefined, 'permanent')
+        result.filesDeleted += await pruneEmptyTrashDirectories(trashPath, [...scannedPaths, ...lastEmptyDirectories.map(path => join(path, '__empty__'))], keepTrashDirectory)
         lastScannedItemIds = []
+        lastEmptyDirectories = []
         return result
       } catch (err: any) {
         return { totalCleaned: 0, filesDeleted: 0, filesSkipped: 0, errors: [{ path: 'Trash', reason: err.message }], needsElevation: false }

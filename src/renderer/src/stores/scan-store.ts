@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { ScanResult, ProgressData, ScanItem, CleanError } from '@shared/types'
 import { ScanStatus, CleanerType } from '@shared/enums'
 import { applyCleaningSafety } from '@shared/cleaning-safety'
+import { mergeScanResults } from '@shared/scan-results'
 
 export interface CleanSummaryData {
   totalCleaned: number
@@ -68,7 +69,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   setStatus: (status) => set({ status }),
   setResults: (results) => {
     const excluded = get().excludedSubcategories
-    const safeResults = results.map(applyCleaningSafety)
+    const safeResults = mergeScanResults([], results).map(applyCleaningSafety)
     const selected = new Set<string>()
     safeResults.forEach((r) =>
       r.items.forEach((item) => {
@@ -79,7 +80,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   },
   addResults: (newResults) =>
     set((s) => {
-      const safeResults = newResults.map(applyCleaningSafety)
+      const safeResults = mergeScanResults(s.results, newResults).slice(s.results.length).map(applyCleaningSafety)
       const excluded = s.excludedSubcategories
       const selected = new Set(s.selectedItems)
       safeResults.forEach((r) =>

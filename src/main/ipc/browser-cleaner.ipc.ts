@@ -16,6 +16,7 @@ interface ChromiumBrowserDef {
   key: string
   label: string
   base: string
+  externalCacheBases?: string[]
   cache: string
   codeCache: string
   gpuCache: string
@@ -45,13 +46,28 @@ export function registerBrowserCleanerIpc(getWindow: WindowGetter): void {
       { key: 'cromite', label: 'Cromite', ...browserPaths.cromite, hasProfiles: true },
       { key: 'catsxp', label: 'CatsXP', ...browserPaths.catsxp, hasProfiles: true },
     ]
+    for (const root of browserPaths.customChromiumRoots || []) {
+      try {
+        const users = await readdir(root, { withFileTypes: true })
+        for (const user of users) {
+          if (!user.isDirectory() || user.isSymbolicLink()) continue
+          chromiumBrowsers.push({ key: 'custom-chrome', label: `Chrome (${user.name})`, base: join(root, user.name),
+            cache: browserPaths.chrome.cache, codeCache: browserPaths.chrome.codeCache,
+            gpuCache: browserPaths.chrome.gpuCache, serviceWorker: browserPaths.chrome.serviceWorker, hasProfiles: true })
+        }
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') results.push({ category, subcategory: 'Chrome (custom)', items: [], totalSize: 0, itemCount: 0,
+          scanWarnings: [{ path: root, reason: error.code === 'EACCES' || error.code === 'EPERM' ? 'permission-denied' : 'scan-failed' }] })
+      }
+    }
 
     // Scan all Chromium-based browsers
     for (const browser of chromiumBrowsers) {
-      if (!existsSync(browser.base)) continue
+      for (const base of new Set([browser.base, ...(browser.externalCacheBases || [])])) {
+      if (!existsSync(base)) continue
 
       if (browser.hasProfiles) {
-        const profiles = await getChromiumProfiles(browser.base)
+        const profiles = await getChromiumProfiles(base)
         for (const profile of profiles) {
           const cacheDirs = [
             { dir: browser.cache, label: 'Cache' },
@@ -60,10 +76,10 @@ export function registerBrowserCleanerIpc(getWindow: WindowGetter): void {
             { dir: browser.serviceWorker, label: 'Service Worker Cache' },
           ]
           for (const { dir, label } of cacheDirs) {
-            const cachePath = join(browser.base, profile, dir)
+            const cachePath = join(base, profile, dir)
             if (existsSync(cachePath)) {
               const result = await scanDirectory(cachePath, category, `${browser.label} - ${profile} ${label}`)
-              if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
+              if (result.items.length > 0 || result.scanWarnings?.length) { cacheItems(result.items); results.push(result) }
             }
           }
         }
@@ -76,12 +92,13 @@ export function registerBrowserCleanerIpc(getWindow: WindowGetter): void {
           { dir: browser.serviceWorker, label: 'Service Worker Cache' },
         ]
         for (const { dir, label } of cacheDirs) {
-          const cachePath = join(browser.base, dir)
+          const cachePath = join(base, dir)
           if (existsSync(cachePath)) {
             const result = await scanDirectory(cachePath, category, `${browser.label} - ${label}`)
-            if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
+            if (result.items.length > 0 || result.scanWarnings?.length) { cacheItems(result.items); results.push(result) }
           }
         }
+      }
       }
     }
 
@@ -94,7 +111,7 @@ export function registerBrowserCleanerIpc(getWindow: WindowGetter): void {
             const cachePath = join(browserPaths.firefox.cache, dir.name, 'cache2', 'entries')
             if (existsSync(cachePath)) {
               const result = await scanDirectory(cachePath, category, `Firefox - ${dir.name} Cache`)
-              if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
+              if (result.items.length > 0 || result.scanWarnings?.length) { cacheItems(result.items); results.push(result) }
             }
           }
         }
@@ -118,7 +135,7 @@ export function registerBrowserCleanerIpc(getWindow: WindowGetter): void {
             const cachePath = join(fork.cache, dir.name, 'cache2')
             if (existsSync(cachePath)) {
               const result = await scanDirectory(cachePath, category, `${fork.label} - ${dir.name} Cache`)
-              if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
+              if (result.items.length > 0 || result.scanWarnings?.length) { cacheItems(result.items); results.push(result) }
             }
           }
         }
@@ -130,7 +147,7 @@ export function registerBrowserCleanerIpc(getWindow: WindowGetter): void {
     // Safari (macOS only) — cache directory only, never cookies/history/bookmarks
     if (browserPaths.safari && existsSync(browserPaths.safari.cache)) {
       const result = await scanDirectory(browserPaths.safari.cache, category, 'Safari - Cache')
-      if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
+      if (result.items.length > 0 || result.scanWarnings?.length) { cacheItems(result.items); results.push(result) }
     }
 
     const win = getWindow()

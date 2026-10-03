@@ -1,6 +1,7 @@
 {
   "$schema": "../schema/rules.schema.json",
   "type": "browsers",
+  "customChromiumRoots": ["${HOME}/Chrome-SYCM-Profiles"],
   "chromiumCacheDirs": {
     "cache": "Cache",
     "codeCache": "Code Cache",
@@ -8,9 +9,9 @@
     "serviceWorker": "Service Worker/CacheStorage"
   },
   "chromium": [
-    { "key": "chrome", "base": "${APP_SUPPORT}/Google/Chrome" },
-    { "key": "edge", "base": "${APP_SUPPORT}/Microsoft Edge" },
-    { "key": "brave", "base": "${APP_SUPPORT}/BraveSoftware/Brave-Browser" },
+    { "key": "chrome", "base": "${APP_SUPPORT}/Google/Chrome", "externalCacheBases": ["${CACHES}/Google/Chrome"] },
+    { "key": "edge", "base": "${APP_SUPPORT}/Microsoft Edge", "externalCacheBases": ["${CACHES}/Microsoft Edge"] },
+    { "key": "brave", "base": "${APP_SUPPORT}/BraveSoftware/Brave-Browser", "externalCacheBases": ["${CACHES}/BraveSoftware/Brave-Browser"] },
     { "key": "opera", "base": "${APP_SUPPORT}/com.operasoftware.Opera" },
     { "key": "operaGX", "base": "${APP_SUPPORT}/com.operasoftware.OperaGX" },
     { "key": "vivaldi", "base": "${APP_SUPPORT}/Vivaldi" },

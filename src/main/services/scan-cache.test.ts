@@ -60,17 +60,15 @@ describe('scan-cache', () => {
     expect(getCachedItem('a')?.size).toBe(9999)
   })
 
-  it('evicts cache when exceeding max size', () => {
-    // Fill cache with items up to the limit (50,000), then add more to trigger eviction
+  it('retains every visible ID until the next scan session', () => {
+    // A second root must not invalidate the first root's visible IDs.
     const batch1 = Array.from({ length: 50000 }, (_, i) => makeItem(`old-${i}`))
     cacheItems(batch1)
     expect(getCachedItem('old-0')).toBeDefined()
 
-    // Adding 1 more item should trigger eviction of the oldest entry
     const batch2 = [makeItem('new-item')]
     cacheItems(batch2)
-    // Oldest item should be evicted to make room
-    expect(getCachedItem('old-0')).toBeUndefined()
+    expect(getCachedItem('old-0')).toBeDefined()
     expect(getCachedItem('new-item')).toBeDefined()
   })
 })

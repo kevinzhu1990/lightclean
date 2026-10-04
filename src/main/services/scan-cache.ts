@@ -2,21 +2,12 @@ import type { ScanItem } from '../../shared/types'
 
 /**
  * In-memory cache of scan results so clean handlers can look up
- * item paths by ID. Each scan replaces the previous cache for that category.
+ * item paths by ID. Clear once at the beginning of a complete scan session.
+ * Never evict IDs still displayed by the renderer during that session.
  */
 const itemCache = new Map<string, ScanItem>()
-const MAX_CACHE_SIZE = 50000
 
 export function cacheItems(items: ScanItem[]): void {
-  // Evict oldest entries if cache is getting too large
-  if (itemCache.size + items.length > MAX_CACHE_SIZE) {
-    const toRemove = itemCache.size + items.length - MAX_CACHE_SIZE
-    const keys = itemCache.keys()
-    for (let i = 0; i < toRemove; i++) {
-      const key = keys.next().value
-      if (key !== undefined) itemCache.delete(key)
-    }
-  }
   for (const item of items) {
     itemCache.set(item.id, item)
   }

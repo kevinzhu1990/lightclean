@@ -107,6 +107,33 @@ describe('BROWSER_SCAN handler', () => {
     mockBrowserPaths.mockReturnValue(makeBrowserPaths())
   })
 
+  it('finds macOS external cache profiles even without the application-support root', async () => {
+    const paths = makeBrowserPaths()
+    Object.assign(paths.chrome, { externalCacheBases: ['/cache/Google/Chrome'] })
+    mockBrowserPaths.mockReturnValue(paths)
+    const cache = join('/cache/Google/Chrome', 'Default', 'Cache')
+    mockExistsSync.mockImplementation((p: string) => p === '/cache/Google/Chrome' || p === cache)
+    mockReaddir.mockResolvedValue([])
+    mockScanDirectory.mockResolvedValue({ category: 'browser', subcategory: 'Chrome Cache', items: [{ id: 'mac-cache', path: join(cache, 'file'), size: 17 }], totalSize: 17, itemCount: 1 })
+    registerBrowserCleanerIpc(() => null)
+    const results = await getHandler('cleaner:browser:scan')() as any[]
+    expect(results.flatMap(r => r.items).map(i => i.path)).toEqual([join(cache, 'file')])
+  })
+
+  it('scans only cache children of custom store profiles, leaving login data out', async () => {
+    const paths = { ...makeBrowserPaths(), customChromiumRoots: ['/custom-profiles'] }
+    mockBrowserPaths.mockReturnValue(paths)
+    const base = join('/custom-profiles', 'jinzun_8090')
+    const cache = join(base, 'Default', 'Cache')
+    mockReaddir.mockImplementation(async (p: string) => p === '/custom-profiles' ? [{ name: 'jinzun_8090', isDirectory: () => true, isSymbolicLink: () => false }] : [])
+    mockExistsSync.mockImplementation((p: string) => p === base || p === cache)
+    mockScanDirectory.mockResolvedValue({ category: 'browser', subcategory: 'Chrome Cache', items: [{ id: 'custom-cache', path: join(cache, 'file'), size: 17 }], totalSize: 17, itemCount: 1 })
+    registerBrowserCleanerIpc(() => null)
+    const results = await getHandler('cleaner:browser:scan')() as any[]
+    expect(results.flatMap(r => r.items).map(i => i.path)).toEqual([join(cache, 'file')])
+    expect(mockScanDirectory.mock.calls.map(c => c[0])).toEqual([cache])
+  })
+
   it('returns empty results when no browser directories exist', async () => {
     mockExistsSync.mockReturnValue(false)
     const win = mockWindow()

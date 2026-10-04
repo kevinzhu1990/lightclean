@@ -62,6 +62,11 @@ export function LargeFileFinderPage() {
     if (!store.result) return 0
     return store.result.files.reduce((sum, f) => sum + f.size, 0)
   }, [store.result])
+  const allocatedTotal = useMemo(() => {
+    const files = store.result?.files ?? []
+    return files.every((f) => f.allocatedSize != null)
+      ? files.reduce((sum, f) => sum + f.allocatedSize!, 0) : null
+  }, [store.result])
 
   const handleSelectDir = async () => {
     const dir = await window.lightclean?.largeFilesSelectDir?.()
@@ -79,11 +84,13 @@ export function LargeFileFinderPage() {
         maxDepth: store.maxDepth,
         excludePatterns: store.excludePatterns
       })
+      if (!result) throw new Error('Missing scan response')
       if (result) {
         store.setResult(result)
         store.setStatus('complete')
       }
     } catch {
+      toast.error(t('operationFailed'))
       store.setStatus('idle')
     }
   }
@@ -99,6 +106,7 @@ export function LargeFileFinderPage() {
     try {
       const paths = Array.from(deletingPaths)
       const result = await window.lightclean?.largeFilesDelete?.(paths, store.deleteMode)
+      if (!result) throw new Error('Missing delete response')
       if (result) {
         store.setDeleteResult(result)
         if (result.deleted > 0) {
@@ -108,14 +116,16 @@ export function LargeFileFinderPage() {
             if (!failedPaths.has(p)) successPaths.add(p)
           }
           store.removeDeletedFiles(successPaths)
-          toast.success(t('deleteSuccess', { count: result.deleted, size: formatBytes(result.spaceRecovered) }))
+          toast.success(t(store.deleteMode === 'recycle' ? 'recycleSuccess' : 'deleteSuccess', { count: result.deleted, size: formatBytes(result.spaceRecovered) }))
         }
         if (result.failed > 0) {
-          toast.error(t('deleteFailed', { failed: result.failed }))
+          toast.error(`${t('deleteFailed', { failed: result.failed })} ${result.errors[0]?.reason ?? ''}`)
         }
         store.setStatus('complete')
       }
     } catch {
+      toast.error(t('operationFailed'))
+    } finally {
       store.setStatus('complete')
     }
   }
@@ -301,12 +311,15 @@ export function LargeFileFinderPage() {
       {store.status === 'complete' && store.result && (
         <>
           {/* Summary stats */}
-          <div className="mb-5 grid grid-cols-4 gap-3">
+          <div className="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-5">
             <StatCard label={t('largeFilesFound')} value={store.result.files.length.toLocaleString()} />
             <StatCard label={t('totalSize')} value={formatBytes(totalLargeSize)} accent />
+            <StatCard label={t('allocatedSize')} value={allocatedTotal == null ? t('unknownSize') : formatBytes(allocatedTotal)} />
             <StatCard label={t('filesScanned')} value={store.result.totalFilesScanned.toLocaleString()} />
             <StatCard label={t('duration')} value={formatDuration(store.result.duration)} />
           </div>
+          <p className="mb-4 text-[12px] leading-relaxed text-zinc-400">{t('safetyNotice')}</p>
+          {store.result.cancelled && <p className="mb-4 text-[12px] text-amber-400">{t('scanIncomplete')}</p>}
 
           {store.result.files.length > 0 ? (
             <>
@@ -314,10 +327,11 @@ export function LargeFileFinderPage() {
               <div className="mb-4 flex items-center gap-3">
                 <button
                   onClick={() => { if (selectedCount > 0) store.deselectAll(); else store.selectAll() }}
+                  disabled={store.result.cancelled}
                   className="rounded-xl px-4 py-2 text-[12px] font-medium text-zinc-400 transition-colors hover:text-zinc-200"
                   style={{ background: 'var(--bg-subtle-2)' }}
                 >
-                  {selectedCount > 0 ? t('deselectAll') : t('selectAll')}
+                  {selectedCount > 0 ? t('deselectAll') : t('selectCandidates')}
                 </button>
 
                 <div className="flex overflow-hidden rounded-lg" style={{ background: 'var(--bg-subtle-2)' }}>
@@ -382,21 +396,33 @@ export function LargeFileFinderPage() {
                   >
                     <input
                       type="checkbox"
+                      disabled={store.result.cancelled || file.safety?.level === 'protected'}
+                      aria-label={`${t('selectFile')} ${file.name}`}
                       checked={store.selectedPaths.has(file.path)}
                       onChange={() => store.togglePath(file.path)}
-                      className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded accent-amber-500"
+                      className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded accent-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
                     />
                     <FileUp className="h-4 w-4 shrink-0" style={{ color: 'var(--text-muted)' }} strokeWidth={1.5} />
-                    <span
-                      className="min-w-0 flex-1 truncate text-[12.5px]"
-                      style={{ color: 'var(--text-secondary)' }}
-                      title={file.path}
-                    >
-                      {file.path}
-                    </span>
-                    <span className="shrink-0 text-[12px] font-semibold" style={{ color: 'var(--accent)' }}>
-                      {formatBytes(file.size)}
-                    </span>
+                    <div className="min-w-0 flex-1 text-[12.5px]">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <span className={cn('rounded-md px-2 py-0.5 text-[11px] font-semibold',
+                          file.safety?.level === 'protected' ? 'bg-red-500/15 text-red-400'
+                            : file.safety?.level === 'candidate' ? 'bg-green-500/15 text-green-400'
+                              : 'bg-amber-500/15 text-amber-400')}>
+                          {t(`safety.${file.safety?.level ?? 'confirm'}`)}
+                        </span>
+                        <span className="break-all text-zinc-200">{file.name}</span>
+                      </div>
+                      <p className="mb-1 text-[11px] leading-relaxed text-zinc-400">{t(`reasons.${file.safety?.reason ?? 'unknown'}`)}</p>
+                      <details className="text-[11px] text-zinc-500">
+                        <summary className="cursor-pointer" title={file.path}>{t('fullPath')}</summary>
+                        <p className="mt-1 select-text break-all">{file.path}</p>
+                      </details>
+                    </div>
+                    <div className="shrink-0 text-right text-[11px] text-zinc-400">
+                      <div>{t('logicalSize')} <span className="font-semibold text-amber-400">{formatBytes(file.size)}</span></div>
+                      <div className="mt-1">{t('allocatedSize')} {file.allocatedSize == null ? t('unknownSize') : formatBytes(file.allocatedSize)}</div>
+                    </div>
                     <span className="shrink-0 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                       {file.extension || '—'}
                     </span>

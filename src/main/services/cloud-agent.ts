@@ -1952,7 +1952,8 @@ class CloudAgentService {
         ]
 
         for (const browser of chromiumBrowsers) {
-          if (!existsSync(browser.base)) continue
+          for (const base of new Set([browser.base, ...(browser.externalCacheBases || [])])) {
+          if (!existsSync(base)) continue
           const cacheDirs = [
             { dir: browser.cache, label: 'Cache' },
             { dir: browser.codeCache, label: 'Code Cache' },
@@ -1960,10 +1961,10 @@ class CloudAgentService {
             { dir: browser.serviceWorker, label: 'Service Worker Cache' },
           ]
           if (browser.hasProfiles) {
-            const profiles = await getChromiumProfiles(browser.base)
+            const profiles = await getChromiumProfiles(base)
             for (const profile of profiles) {
               for (const { dir, label } of cacheDirs) {
-                const cachePath = join(browser.base, profile, dir)
+                const cachePath = join(base, profile, dir)
                 if (existsSync(cachePath)) {
                   try {
                     const r = await scanDirectory(cachePath, browserCategory, `${browser.label} - ${profile} ${label}`)
@@ -1974,7 +1975,7 @@ class CloudAgentService {
             }
           } else {
             for (const { dir, label } of cacheDirs) {
-              const cachePath = join(browser.base, dir)
+              const cachePath = join(base, dir)
               if (existsSync(cachePath)) {
                 try {
                   const r = await scanDirectory(cachePath, browserCategory, `${browser.label} - ${label}`)
@@ -1982,6 +1983,7 @@ class CloudAgentService {
                 } catch { /* skip */ }
               }
             }
+          }
           }
         }
 
@@ -2051,8 +2053,9 @@ class CloudAgentService {
         const appCategory = CleanerType.App
         for (const appDef of getPlatform().paths.appPaths()) {
           try {
-            const appPaths = await resolveChildSubdirs(appDef.paths, appDef.childSubdir)
-            const r = await scanMultipleDirectories(appPaths, appCategory, appDef.name)
+            const appPaths = await resolveChildSubdirs(appDef.paths, appDef.childSubdir, appDef.childPrefix)
+            const label = appDef.kind ? `${appDef.name} - ${appDef.kind === 'logs' ? 'Logs' : 'Cache'}` : appDef.name
+            const r = await scanMultipleDirectories(appPaths, appCategory, label)
             if (r.items.length > 0) { cacheItems(r.items); appResults.push(r) }
           } catch { /* skip */ }
         }

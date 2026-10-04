@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import { IPC } from '../../shared/channels'
 import { getPlatform } from '../platform'
 import { scanDirectory, scanFile, scanMultipleDirectories, resolveChildSubdirs, cleanItems } from '../services/file-utils'
-import { cacheItems } from '../services/scan-cache'
+import { cacheItems, clearCache } from '../services/scan-cache'
 import { isAdmin } from '../services/elevation'
 import type { ScanResult, CleanResult } from '../../shared/types'
 import { CleanerType } from '../../shared/enums'
@@ -10,6 +10,7 @@ import type { WindowGetter } from './index'
 import { validateStringArray } from '../services/ipc-validation'
 
 export function registerSystemCleanerIpc(getWindow: WindowGetter): void {
+  ipcMain.handle(IPC.CLEANER_SCAN_START, () => clearCache())
   ipcMain.handle(IPC.SYSTEM_SCAN, async (): Promise<ScanResult[]> => {
     const results: ScanResult[] = []
     const category = CleanerType.System
@@ -28,7 +29,7 @@ export function registerSystemCleanerIpc(getWindow: WindowGetter): void {
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i]
 
-      if (target.needsAdmin && !elevated) {
+      if (target.needsAdmin && !elevated && process.platform !== 'darwin') {
         skippedForElevation.push(target.subcategory)
         continue
       }
@@ -38,8 +39,10 @@ export function registerSystemCleanerIpc(getWindow: WindowGetter): void {
         // e.g. Flatpak: scan ~/.var/app/*/cache instead of ~/.var/app
         let result: ScanResult
         if (target.childSubdir) {
-          const childPaths = await resolveChildSubdirs([target.path], target.childSubdir)
+          const resolutionWarnings: NonNullable<ScanResult['scanWarnings']> = []
+          const childPaths = await resolveChildSubdirs([target.path], target.childSubdir, undefined, resolutionWarnings)
           result = await scanMultipleDirectories(childPaths, category, target.subcategory)
+          if (resolutionWarnings.length) result.scanWarnings = [...resolutionWarnings, ...(result.scanWarnings || [])]
         } else {
           result = await scanDirectory(target.path, category, target.subcategory)
         }
@@ -54,7 +57,7 @@ export function registerSystemCleanerIpc(getWindow: WindowGetter): void {
           result.itemCount = result.items.length
         }
 
-        if (result.items.length > 0) {
+        if (result.items.length > 0 || result.scanWarnings?.length) {
           cacheItems(result.items)
           results.push(result)
         }

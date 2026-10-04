@@ -70,7 +70,11 @@ export function classifyCleaningTarget(category: string, subcategory: string, fi
 export function applyCleaningSafety(result: ScanResult): ScanResult {
   const base = classifyCleaningTarget(result.category, result.subcategory, result.items[0]?.path || '')
   const items: ScanItem[] = result.items.map((item) => {
-    const info = classifyCleaningTarget(item.category, item.subcategory, item.path)
+    let info = classifyCleaningTarget(item.category, item.subcategory, item.path)
+    if (info.level !== 'protected' && (item.safety === 'confirm' || item.safety === 'protected')) {
+      info = { ...classifyCleaningTarget(item.category, 'Unrecognized app data', item.path), level: item.safety,
+        reason: item.cleanupReason || '该应用尚未适配精确清理规则，请先确认文件用途。' }
+    }
     return {
       ...item,
       selected: info.level === 'recommended',
@@ -83,7 +87,10 @@ export function applyCleaningSafety(result: ScanResult): ScanResult {
   const levels = new Set(items.map((item) => item.safety))
   const info = levels.has('protected')
     ? classifyCleaningTarget(result.category, 'Installer Patch Cache', result.items.find((item) => item.safety === 'protected')?.path || '')
-    : base
+    : levels.has('confirm')
+      ? { ...base, level: 'confirm' as const,
+          reason: items.find(item => item.safety === 'confirm')?.cleanupReason || base.reason }
+      : base
 
   return {
     ...result,
@@ -96,8 +103,6 @@ export function applyCleaningSafety(result: ScanResult): ScanResult {
 }
 
 export function canCleanItem(item: ScanItem): boolean {
-  const info = item.safety
-    ? { level: item.safety }
-    : classifyCleaningTarget(item.category, item.subcategory, item.path)
-  return info.level !== 'protected'
+  return item.safety !== 'protected' &&
+    classifyCleaningTarget(item.category, item.subcategory, item.path).level !== 'protected'
 }

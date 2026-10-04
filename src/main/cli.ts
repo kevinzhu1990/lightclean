@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { flushCliOutput } from './services/cli-output'
 import { existsSync } from 'fs'
 import { readdir } from 'fs/promises'
 import { join } from 'path'
@@ -46,6 +47,11 @@ function log(msg: string): void {
   process.stdout.write(msg + '\n')
 }
 
+async function exitCli(code: number): Promise<void> {
+  await flushCliOutput()
+  app.exit(code)
+}
+
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -54,12 +60,12 @@ function formatBytes(bytes: number): string {
 }
 
 function cliLog(ctx: CliContext, msg: string): void {
-  if (ctx.verbosity === 'quiet') return
+  if (ctx.verbosity === 'quiet' || ctx.json) return
   process.stdout.write(msg + '\n')
 }
 
 function cliVerbose(ctx: CliContext, msg: string): void {
-  if (ctx.verbosity !== 'verbose') return
+  if (ctx.verbosity !== 'verbose' || ctx.json) return
   process.stdout.write(`  [verbose] ${msg}\n`)
 }
 
@@ -191,15 +197,16 @@ async function scanBrowserCli(): Promise<ScanResult[]> {
     { label: 'CatsXP', ...browserPaths.catsxp, hasProfiles: true },
   ]
   for (const browser of chromiumBrowsers) {
-    if (!existsSync(browser.base)) continue
+    for (const base of new Set([browser.base, ...(browser.externalCacheBases || [])])) {
+    if (!existsSync(base)) continue
     if (browser.hasProfiles) {
-      const profiles = await getChromiumProfiles(browser.base)
+      const profiles = await getChromiumProfiles(base)
       for (const profile of profiles) {
         for (const { dir, label } of [
           { dir: browser.cache, label: 'Cache' }, { dir: browser.codeCache, label: 'Code Cache' },
           { dir: browser.gpuCache, label: 'GPU Cache' }, { dir: browser.serviceWorker, label: 'Service Worker Cache' },
         ]) {
-          const cachePath = join(browser.base, profile, dir)
+          const cachePath = join(base, profile, dir)
           if (existsSync(cachePath)) {
             const result = await scanDirectory(cachePath, category, `${browser.label} - ${profile} ${label}`)
             if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
@@ -211,12 +218,13 @@ async function scanBrowserCli(): Promise<ScanResult[]> {
         { dir: browser.cache, label: 'Cache' }, { dir: browser.codeCache, label: 'Code Cache' },
         { dir: browser.gpuCache, label: 'GPU Cache' }, { dir: browser.serviceWorker, label: 'Service Worker Cache' },
       ]) {
-        const cachePath = join(browser.base, dir)
+        const cachePath = join(base, dir)
         if (existsSync(cachePath)) {
           const result = await scanDirectory(cachePath, category, `${browser.label} - ${label}`)
           if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
         }
       }
+    }
     }
   }
   if (existsSync(browserPaths.firefox.cache)) {
@@ -267,8 +275,9 @@ async function scanApp(): Promise<ScanResult[]> {
   const category = CleanerType.App
   for (const appDef of getPlatform().paths.appPaths()) {
     try {
-      const paths = await resolveChildSubdirs(appDef.paths, appDef.childSubdir)
-      const result = await scanMultipleDirectories(paths, category, appDef.name)
+      const paths = await resolveChildSubdirs(appDef.paths, appDef.childSubdir, appDef.childPrefix)
+      const label = appDef.kind ? `${appDef.name} - ${appDef.kind === 'logs' ? 'Logs' : 'Cache'}` : appDef.name
+      const result = await scanMultipleDirectories(paths, category, label)
       if (result.items.length > 0) { cacheItems(result.items); results.push(result) }
     } catch { /* skip */ }
   }
@@ -1457,7 +1466,7 @@ async function handleMetricsServer(args: string[], ctx: CliContext): Promise<voi
 
   const shutdown = (): void => {
     server.close()
-    app.exit(ExitCode.SUCCESS)
+    void exitCli(ExitCode.SUCCESS)
   }
   process.on('SIGTERM', shutdown)
   process.on('SIGINT', shutdown)
@@ -1588,8 +1597,8 @@ async function runLegacyScanClean(categories: string[], doClean: boolean, ctx: C
 export async function runCli(): Promise<void> {
   const parsed = parseCliArgs(process.argv)
 
-  if (parsed.help) { printHelp(); app.exit(ExitCode.SUCCESS); return }
-  if (parsed.version) { log(`LightClean v${app.getVersion()}`); app.exit(ExitCode.SUCCESS); return }
+  if (parsed.help) { printHelp(); await exitCli(ExitCode.SUCCESS); return }
+  if (parsed.version) { log(`LightClean v${app.getVersion()}`); await exitCli(ExitCode.SUCCESS); return }
 
   const { ctx } = parsed
 
@@ -1598,7 +1607,7 @@ export async function runCli(): Promise<void> {
   if (cliArgs.includes('--verbose') && (cliArgs.includes('--quiet') || cliArgs.includes('-q'))) {
     if (ctx.json) log(JSON.stringify({ error: 'invalid_args', message: '--verbose and --quiet are mutually exclusive' }))
     else process.stderr.write('Error: --verbose and --quiet are mutually exclusive.\n')
-    app.exit(ExitCode.INVALID_ARGS)
+    await exitCli(ExitCode.INVALID_ARGS)
     return
   }
 
@@ -1614,7 +1623,7 @@ export async function runCli(): Promise<void> {
     }
     const doClean = parsed.hasCleanFlag || parsed.command === 'clean'
     const exitCode = await runLegacyScanClean(categories, doClean, ctx)
-    app.exit(exitCode)
+    await exitCli(exitCode)
     return
   }
 
@@ -1648,16 +1657,16 @@ export async function runCli(): Promise<void> {
           log(`Unknown command: ${parsed.command}`)
           log('Run lightclean --cli --help for usage information.')
         }
-        app.exit(ExitCode.UNKNOWN_COMMAND)
+        await exitCli(ExitCode.UNKNOWN_COMMAND)
         return
     }
-    app.exit(exitCode ?? ExitCode.SUCCESS)
+    await exitCli(exitCode ?? ExitCode.SUCCESS)
   } catch (err: any) {
     if (ctx.json) {
       log(JSON.stringify({ error: err.message }))
     } else {
       process.stderr.write(`Error: ${err.message}\n`)
     }
-    app.exit(ExitCode.GENERAL_ERROR)
+    await exitCli(ExitCode.GENERAL_ERROR)
   }
 }

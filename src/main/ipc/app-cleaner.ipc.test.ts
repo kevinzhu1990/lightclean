@@ -25,9 +25,10 @@ vi.mock('../services/scan-cache', () => ({
 const mockAppPaths = vi.fn()
 vi.mock('../platform', () => ({
   getPlatform: () => ({
-    paths: { appPaths: () => mockAppPaths() },
+    paths: { appPaths: () => mockAppPaths(), browserPaths: () => ({}) },
   }),
 }))
+vi.mock('../services/mac-app-caches', () => ({ discoverMacAppCaches: async () => [] }))
 
 vi.mock('../services/ipc-validation', () => ({
   validateStringArray: (input: unknown) => {

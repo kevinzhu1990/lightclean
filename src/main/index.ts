@@ -12,6 +12,7 @@ import { registerCleanerIpc } from './ipc'
 import { getSettings } from './services/settings-store'
 import { startScheduler, stopScheduler, getNextScanTime, notifyScheduledScanComplete, completeScheduleRun } from './services/scheduler'
 import { initAutoUpdater } from './services/auto-updater'
+import { shouldMinimizeOnClose } from './services/window-close-policy'
 import { attachRendererDiagnostics } from './services/renderer-diagnostics'
 import { shouldDisableGpu, applyGpuFallbackSwitches, registerGpuCrashRecovery } from './services/gpu-fallback'
 import { runCli } from './cli'
@@ -117,6 +118,7 @@ if (!gotLock) {
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let ipcRegistered = false
+let quitting = false
 
 function getIconPath(): string {
   const ext = process.platform === 'darwin' ? 'icns' : process.platform === 'linux' ? 'png' : 'ico'
@@ -394,7 +396,7 @@ function createWindow(): void {
   // Intercept close to minimize to tray if enabled
   mainWindow.on('close', (e) => {
     const currentSettings = getSettings()
-    if (currentSettings.minimizeToTray && mainWindow && !mainWindow.isDestroyed()) {
+    if (shouldMinimizeOnClose(currentSettings.minimizeToTray, quitting) && mainWindow && !mainWindow.isDestroyed()) {
       e.preventDefault()
       mainWindow.hide()
     }
@@ -562,6 +564,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  quitting = true
   stopScheduler()
   // Kill any active child processes (reg.exe, cmd.exe, etc.) to prevent orphans
   killAllChildren()

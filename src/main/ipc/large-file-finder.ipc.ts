@@ -1,6 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { readdir, stat, rm } from 'fs/promises'
-import { join, extname, isAbsolute } from 'path'
+import { readdir, stat, lstat, realpath, rm } from 'fs/promises'
+import { join, extname, isAbsolute, resolve, relative } from 'path'
+import { allocatedFileSize, classifyLargeFile } from '../../shared/large-file-safety'
 import { IPC } from '../../shared/channels'
 import type {
   LargeFileScanOptions,
@@ -13,6 +14,15 @@ import type {
 import type { WindowGetter } from './index'
 
 let cancelled = false
+let scanning = false
+let deleting = false
+type Snapshot = { canonical: string; size: number; mtimeMs: number; ino: number; dev: number }
+let lastScan = new Map<string, Snapshot>()
+let lastRoot = ''
+function inside(path: string, root: string): boolean {
+  const rel = relative(root, path)
+  return rel !== '..' && !rel.startsWith('..' + (process.platform === 'win32' ? '\\' : '/')) && !isAbsolute(rel)
+}
 
 function sendProgress(win: BrowserWindow | null, data: LargeFileScanProgress): void {
   if (win && !win.isDestroyed()) {
@@ -27,7 +37,8 @@ async function walkDirectory(
   files: LargeFileEntry[],
   counters: { scanned: number },
   win: BrowserWindow | null,
-  lastReport: { time: number }
+  lastReport: { time: number },
+  snapshots: Map<string, Snapshot>
 ): Promise<void> {
   if (cancelled) return
   if (depth > options.maxDepth) return
@@ -52,14 +63,21 @@ async function walkDirectory(
       )
       if (shouldExclude) continue
 
-      await walkDirectory(fullPath, options, depth + 1, files, counters, win, lastReport)
+      await walkDirectory(fullPath, options, depth + 1, files, counters, win, lastReport, snapshots)
     } else if (entry.isFile()) {
       try {
         const s = await stat(fullPath)
         counters.scanned++
 
         if (s.size >= options.minFileSize) {
+          const canonical = await realpath(fullPath)
+          const lexicalSafety = classifyLargeFile(fullPath, s.mtimeMs)
+          const canonicalSafety = classifyLargeFile(canonical, s.mtimeMs)
+          const safety = lexicalSafety.level === 'protected' ? lexicalSafety : canonicalSafety
+          snapshots.set(resolve(fullPath), { canonical, size: s.size, mtimeMs: s.mtimeMs, ino: s.ino, dev: s.dev })
           files.push({
+            safety,
+            allocatedSize: allocatedFileSize(s.blocks, process.platform),
             path: fullPath,
             name: entry.name,
             size: s.size,
@@ -107,6 +125,11 @@ export function registerLargeFileFinderIpc(getWindow: WindowGetter): void {
 
   // Scan
   ipcMain.handle(IPC.LARGE_FILES_SCAN, async (_event, options: unknown): Promise<LargeFileScanResult> => {
+    if (scanning || deleting) throw new Error('A large-file operation is already running')
+    scanning = true
+    lastScan.clear()
+    lastRoot = ''
+    try {
     cancelled = false
     const startTime = Date.now()
     const win = getWindow()
@@ -146,13 +169,19 @@ export function registerLargeFileFinderIpc(getWindow: WindowGetter): void {
     const files: LargeFileEntry[] = []
     const counters = { scanned: 0 }
     const lastReport = { time: Date.now() }
-    await walkDirectory(safeOptions.directory, safeOptions, 0, files, counters, win, lastReport)
+    const canonicalRoot = await realpath(safeOptions.directory)
+    const snapshots = new Map<string, Snapshot>()
+    await walkDirectory(safeOptions.directory, safeOptions, 0, files, counters, win, lastReport, snapshots)
 
     // Sort by size descending
     files.sort((a, b) => b.size - a.size)
 
     // Cap at 500 results
     const topFiles = files.slice(0, 500)
+    if (!cancelled) {
+      lastRoot = canonicalRoot
+      lastScan = new Map(topFiles.map((file) => [resolve(file.path), snapshots.get(resolve(file.path))!]))
+    }
 
     return {
       files: topFiles,
@@ -160,12 +189,16 @@ export function registerLargeFileFinderIpc(getWindow: WindowGetter): void {
       duration: Date.now() - startTime,
       cancelled
     }
+    } finally { scanning = false }
   })
 
   // Delete
   ipcMain.handle(IPC.LARGE_FILES_DELETE, async (_event, paths: unknown, mode: unknown): Promise<LargeFileDeleteResult> => {
+    if (scanning || deleting) throw new Error('A large-file operation is already running')
+    deleting = true
+    try {
     if (!Array.isArray(paths)) return { deleted: 0, failed: 0, spaceRecovered: 0, errors: [] }
-    const safePaths = paths.filter((p): p is string => typeof p === 'string' && isAbsolute(p))
+    const safePaths = [...new Set(paths.filter((p): p is string => typeof p === 'string' && isAbsolute(p)).map((p) => resolve(p)))]
     const deleteMode: LargeFileDeleteMode = mode === 'permanent' ? 'permanent' : 'recycle'
 
     let deleted = 0
@@ -175,7 +208,13 @@ export function registerLargeFileFinderIpc(getWindow: WindowGetter): void {
 
     for (const filePath of safePaths) {
       try {
-        const s = await stat(filePath)
+        const saved = lastScan.get(filePath)
+        if (!saved || !lastRoot) throw new Error('安全保护：请重新扫描后选择文件')
+        const s = await lstat(filePath)
+        const canonical = await realpath(filePath)
+        if (!s.isFile() || s.isSymbolicLink() || canonical !== saved.canonical || !inside(canonical, lastRoot)) throw new Error('安全保护：文件路径已变化或超出扫描范围')
+        if (s.size !== saved.size || s.mtimeMs !== saved.mtimeMs || s.ino !== saved.ino || s.dev !== saved.dev) throw new Error('安全保护：文件已变化，请重新扫描')
+        if ([filePath, canonical].some((p) => classifyLargeFile(p, s.mtimeMs).level === 'protected')) throw new Error('安全保护：系统、应用数据、数据库、虚拟磁盘或备份不能在此删除')
         const fileSize = s.size
 
         if (deleteMode === 'recycle') {
@@ -184,6 +223,7 @@ export function registerLargeFileFinderIpc(getWindow: WindowGetter): void {
           await rm(filePath, { force: true })
         }
         deleted++
+        lastScan.delete(filePath)
         spaceRecovered += fileSize
       } catch (err: any) {
         failed++
@@ -192,6 +232,7 @@ export function registerLargeFileFinderIpc(getWindow: WindowGetter): void {
     }
 
     return { deleted, failed, spaceRecovered, errors }
+    } finally { deleting = false }
   })
 
   // Open file location

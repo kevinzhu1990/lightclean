@@ -103,9 +103,35 @@ import type {
 } from '../shared/types'
 
 async function paidInvoke<T>(channel: string, ...args: unknown[]): Promise<T> {
-  const status = await ipcRenderer.invoke(IPC.LICENSE_STATUS) as LicenseStatus
+  const nextStep = '请前往“授权与套餐”页面刷新授权或输入有效兑换码后重试。'
+  let status: LicenseStatus
+  try {
+    status = await ipcRenderer.invoke(IPC.LICENSE_STATUS) as LicenseStatus
+  } catch {
+    throw new Error(`暂时无法读取授权状态，${nextStep}`)
+  }
+
+  // An online paid license can renew its offline allowance without asking the
+  // user to redeem the same code again. Never renew an expired subscription.
+  if (
+    !status.canUsePaidFeatures
+    && status.state === 'needs_activation'
+    && status.activationMode === 'online'
+    && status.plan !== null
+    && status.plan !== 'trial'
+    && status.offlineUntil
+    && new Date(status.offlineUntil).getTime() <= Date.now()
+    && (!status.expiresAt || new Date(status.expiresAt).getTime() > Date.now())
+  ) {
+    try {
+      status = await ipcRenderer.invoke(IPC.LICENSE_REFRESH) as LicenseStatus
+    } catch {
+      throw new Error(`暂时无法刷新授权，请检查网络后重试。${nextStep}`)
+    }
+  }
+
   if (!status.canUsePaidFeatures) {
-    throw new Error('当前试用或套餐已到期，请前往“授权与套餐”页面输入兑换码。')
+    throw new Error(`${status.message || '当前授权不可用。'}${nextStep}`)
   }
   return ipcRenderer.invoke(channel, ...args) as Promise<T>
 }

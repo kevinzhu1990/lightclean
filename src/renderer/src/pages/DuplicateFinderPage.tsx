@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 import {
   FolderOpen,
   Search,
@@ -17,6 +18,7 @@ import {
 import { cn, formatBytes } from '@/lib/utils'
 import { useDuplicateStore } from '@/stores/duplicate-store'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import type { DuplicateDeleteResult } from '@shared/types'
 
 const SIZE_PRESETS = [
   { label: '100 KB', value: 102_400 },
@@ -49,6 +51,36 @@ const PHASE_LABELS: Record<string, string> = {
   complete: 'phaseComplete'
 }
 
+function requestErrorMessage(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message
+    : typeof error === 'string' ? error
+      : error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+        ? error.message : ''
+  const message = raw.replace(/^Error invoking remote method ['"][^'"]+['"]:\s*(?:Error:\s*)?/, '').trim()
+  if (/No handler registered|Missing (?:scan|delete) response|IPC (?:unavailable|disconnected)/i.test(message)) {
+    return '清理服务尚未就绪，请完全退出轻净后重新打开；若仍失败，请重新安装最新版本。'
+  }
+  // Keep actionable Chinese bridge/main-process reasons instead of hiding
+  // authorization or permission failures behind a generic toast.
+  return /[\u3400-\u9fff]/.test(message) ? message.slice(0, 600) : fallback
+}
+
+function deleteOutcome(result: DuplicateDeleteResult) {
+  const isProtected = (error: DuplicateDeleteResult['errors'][number]) =>
+    error.code === 'protected'
+    || ((result.protectedSkipped ?? 0) > 0 && error.reason.startsWith('安全保护'))
+  const protectedErrors = result.errors.filter(isProtected)
+  const errors = result.errors.filter((error) => !isProtected(error))
+  const protectedSkipped = Math.max(result.protectedSkipped ?? 0, protectedErrors.length)
+  return {
+    protectedErrors,
+    protectedSkipped,
+    errors,
+    // The native response retains safe skips in failed for older clients.
+    failed: Math.max(0, result.failed - protectedSkipped, errors.length)
+  }
+}
+
 export function DuplicateFinderPage() {
   const { t } = useTranslation('duplicates')
   const store = useDuplicateStore()
@@ -56,6 +88,7 @@ export function DuplicateFinderPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [excludeInput, setExcludeInput] = useState('')
+  const [requestError, setRequestError] = useState<string | null>(null)
 
   // Subscribe to progress events
   useEffect(() => {
@@ -66,6 +99,7 @@ export function DuplicateFinderPage() {
   }, [])
 
   const selectedCount = store.selectedPaths.size
+  const outcome = store.deleteResult ? deleteOutcome(store.deleteResult) : null
   const selectedSize = useMemo(() => {
     if (!store.result) return 0
     let size = 0
@@ -93,6 +127,7 @@ export function DuplicateFinderPage() {
 
   const handleScan = async () => {
     if (!store.directory) return
+    setRequestError(null)
     store.reset()
     store.setStatus('scanning')
     try {
@@ -113,8 +148,10 @@ export function DuplicateFinderPage() {
           store.selectAllDuplicates()
         }
       }
-    } catch {
-      toast.error(t('requestFailed'))
+    } catch (error) {
+      const message = requestErrorMessage(error, t('requestFailed'))
+      setRequestError(message)
+      toast.error(message)
       store.setStatus('idle')
     }
   }
@@ -125,6 +162,8 @@ export function DuplicateFinderPage() {
 
   const handleDelete = async () => {
     setShowConfirm(false)
+    setRequestError(null)
+    store.setDeleteResult(null)
     const deletingPaths = new Set(store.selectedPaths)
     store.setStatus('deleting')
     try {
@@ -133,6 +172,15 @@ export function DuplicateFinderPage() {
       if (!result) throw new Error('Missing delete response')
       if (result) {
         store.setDeleteResult(result)
+        const outcome = deleteOutcome(result)
+        if (outcome.protectedErrors.length > 0) {
+          // Prune stale scan candidates only. These files remain untouched and
+          // are never included in deleted counts, reclaimed bytes, or success.
+          store.removeDeletedFiles(new Set(outcome.protectedErrors.map((error) => error.path)))
+        }
+        if (outcome.protectedSkipped > 0) {
+          toast.info(t('protectedSkipped', { count: outcome.protectedSkipped }))
+        }
         if (result.deleted > 0) {
           // Build the set of successfully deleted paths (remove failures)
           const failedPaths = new Set(result.errors.map((e) => e.path))
@@ -143,18 +191,20 @@ export function DuplicateFinderPage() {
           store.removeDeletedFiles(successPaths)
           toast.success(t(store.deleteMode === 'recycle' ? 'recycleSuccess' : 'deleteSuccess', { count: result.deleted, size: formatBytes(result.spaceRecovered) }))
         }
-        if (result.failed > 0) {
-          const firstReason = result.errors[0]?.reason
+        if (outcome.failed > 0) {
+          const firstReason = outcome.errors[0]?.reason
           toast.error(
             firstReason
-              ? `${t('deleteFailed', { failed: result.failed })}：${firstReason}`
-              : t('deleteFailed', { failed: result.failed })
+              ? `${t('deleteFailed', { failed: outcome.failed })}：${firstReason}`
+              : t('deleteFailed', { failed: outcome.failed })
           )
         }
         store.setStatus('complete')
       }
-    } catch {
-      toast.error(t('requestFailed'))
+    } catch (error) {
+      const message = requestErrorMessage(error, t('requestFailed'))
+      setRequestError(message)
+      toast.error(message)
     } finally {
       store.setStatus('complete')
     }
@@ -200,6 +250,22 @@ export function DuplicateFinderPage() {
         <h1 className="text-[24px] font-bold tracking-tight text-white">{t('pageTitle')}</h1>
         <p className="mt-1.5 text-[13px] animate-fade-in" style={{ color: 'var(--text-muted)' }}>{t('pageDescription')}</p>
       </div>
+
+      {requestError && (
+        <div role="alert" className="mb-4 rounded-xl px-4 py-3 text-[13px]"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--text-primary)' }}>
+          <div className="font-semibold">{t('requestFailedTitle')}</div>
+          <p className="mt-1 select-text break-words">{requestError}</p>
+          {store.result && selectedCount > 0 && (
+            <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>{t('requestSelectionKept')}</p>
+          )}
+          {/授权|套餐|试用|兑换码/.test(requestError) && (
+            <Link to="/license" className="mt-2 inline-block font-medium underline underline-offset-4" style={{ color: 'var(--text-primary)' }}>
+              {t('openLicense')}
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="mb-4 rounded-xl px-4 py-3" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.14)' }}>
         <div className="flex items-center gap-2">
@@ -480,6 +546,29 @@ export function DuplicateFinderPage() {
             <StatCard label={t('duration')} value={formatDuration(store.result.duration)} />
           </div>
 
+          {outcome && outcome.protectedSkipped > 0 && (
+            <div role="status" data-delete-outcome="protected"
+              className="mb-4 rounded-xl px-4 py-3 text-[12px]"
+              style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', color: 'var(--text-primary)' }}>
+              <div className="font-semibold">{t('protectedSkipped', { count: outcome.protectedSkipped })}</div>
+              <p className="mt-1 select-text break-words">{t('protectedSkippedHint')}</p>
+            </div>
+          )}
+
+          {outcome && outcome.failed > 0 && (
+            <div role="alert" data-delete-outcome="failed"
+              className="mb-4 rounded-xl px-4 py-3 text-[12px]"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--text-primary)' }}>
+              <div className="font-semibold">{t('deleteFailed', { failed: outcome.failed })}</div>
+              {outcome.errors.slice(0, 3).map((error) => (
+                <p key={error.path} className="mt-1 select-text break-words">
+                  {error.reason}：{error.path}
+                </p>
+              ))}
+              <p className="mt-2">{t('deletePermissionHint')}</p>
+            </div>
+          )}
+
           {store.result.groups.length > 0 ? (
             <>
               {/* Action bar */}
@@ -544,25 +633,6 @@ export function DuplicateFinderPage() {
                   </button>
                 )}
               </div>
-
-              {store.deleteResult && store.deleteResult.failed > 0 && (
-                <div
-                  className="mb-4 rounded-xl px-4 py-3 text-[12px]"
-                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5' }}
-                >
-                  <div className="font-semibold">
-                    {t('deleteFailed', { failed: store.deleteResult.failed })}
-                  </div>
-                  {store.deleteResult.errors.slice(0, 3).map((error) => (
-                    <div key={error.path} className="mt-1 truncate" title={`${error.path}：${error.reason}`}>
-                      {error.reason}：{error.path}
-                    </div>
-                  ))}
-                  <div className="mt-2 text-zinc-400">
-                    请关闭占用文件的程序；扫描整个磁盘时，轻净会自动跳过 Windows 和程序安装目录。
-                  </div>
-                </div>
-              )}
 
               {/* Duplicate groups */}
               <div className="space-y-2">

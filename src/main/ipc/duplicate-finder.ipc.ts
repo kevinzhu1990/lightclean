@@ -407,36 +407,41 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
     let deleted = 0
     let failed = 0
     let spaceRecovered = 0
-    const errors: { path: string; reason: string }[] = []
+    const errors: DuplicateDeleteResult['errors'] = []
 
     for (const filePath of safePaths) {
       try {
         if (isProtectedDuplicatePath(filePath)) {
           failed++
-          errors.push({ path: filePath, reason: '安全保护：Windows、程序安装目录和系统目录中的文件不能删除' })
+          errors.push({ path: filePath, code: 'protected', reason: '安全保护：系统、应用数据和程序运行文件不参与重复清理，请通过软件卸载功能处理应用程序。' })
           continue
         }
         if (!lastScanRoot || !isPathInside(filePath, lastScanRoot)) {
           failed++
-          errors.push({ path: filePath, reason: '安全保护：路径不在本次扫描目录内' })
+          errors.push({ path: filePath, code: 'protected', reason: '安全保护：路径不在本次扫描目录内' })
           continue
         }
         const canonicalPath = await realpath(filePath)
         const canonicalRoot = await realpath(lastScanRoot)
         if (!isPathInside(canonicalPath, canonicalRoot)) {
           failed++
-          errors.push({ path: filePath, reason: '安全保护：文件的真实路径超出本次扫描边界' })
+          errors.push({ path: filePath, code: 'protected', reason: '安全保护：文件的真实路径超出本次扫描边界' })
+          continue
+        }
+        if (isProtectedDuplicatePath(canonicalPath)) {
+          failed++
+          errors.push({ path: filePath, code: 'protected', reason: '安全保护：文件的真实路径属于系统、应用数据或程序运行文件，不执行删除。' })
           continue
         }
         if (lastReferenceDirectories.some((root) => isPathInside(filePath, root))) {
           failed++
-          errors.push({ path: filePath, reason: '安全保护：参考目录为只读，不能删除' })
+          errors.push({ path: filePath, code: 'protected', reason: '安全保护：参考目录为只读，不能删除' })
           continue
         }
         const linkStats = await lstat(filePath)
         if (linkStats.isSymbolicLink()) {
           failed++
-          errors.push({ path: filePath, reason: '安全保护：不处理符号链接' })
+          errors.push({ path: filePath, code: 'protected', reason: '安全保护：不处理符号链接' })
           continue
         }
         const s = await stat(filePath)
@@ -463,7 +468,7 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
       } catch (err: any) {
         failed++
         const reason = err?.code === 'EACCES' || err?.code === 'EPERM'
-          ? '权限不足，请以管理员身份运行，或关闭正在占用该文件的程序。'
+          ? '文件可能被占用或没有删除权限，请先关闭相关文件和程序后重试；仍失败请检查文件夹权限。'
           : err?.code === 'EBUSY'
             ? '文件正在使用，请关闭相关程序后重新扫描。'
             : err?.code === 'ENOENT'
@@ -475,7 +480,7 @@ export function registerDuplicateFinderIpc(getWindow: WindowGetter): void {
       }
     }
 
-    return { deleted, failed, protectedSkipped: errors.filter((error) => error.reason.startsWith('安全保护')).length, spaceRecovered, errors }
+    return { deleted, failed, protectedSkipped: errors.filter((error) => error.code === 'protected').length, spaceRecovered, errors }
   })
 
   // Open file location in system file manager

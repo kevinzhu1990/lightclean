@@ -1550,7 +1550,7 @@ export interface DuplicateDeleteResult {
   deleted: number
   failed: number
   spaceRecovered: number
-  errors: { path: string; reason: string }[]
+  errors: { path: string; reason: string; code?: 'protected' }[]
   protectedSkipped?: number
 }
 

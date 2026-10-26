@@ -72,6 +72,13 @@ export function isProtectedDuplicatePath(
   const segments = pathSegments(targetPath, platform)
   if (segments.length === 0) return true
 
+  // Identical application files are often intentional (side-by-side versions,
+  // shared runtimes and plugins). Their equality does not make them disposable.
+  if (platform === 'win32' && segments.includes('appdata')) return true
+  if (platform === 'darwin' && segments.some((segment) => segment.endsWith('.app'))) return true
+  const name = segments[segments.length - 1]
+  if (/\.(exe|dll|sys|ocx|cpl|drv|node|asar|dylib|so(?:\.\d+)*)$/.test(name)) return true
+
   const first = segments[0]
   return platform === 'win32'
     ? WINDOWS_PROTECTED_ROOTS.has(first)

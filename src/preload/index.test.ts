@@ -44,6 +44,11 @@ const offlineExpiredStatus: LicenseStatus = {
 
 beforeEach(() => boundary.invoke.mockReset())
 
+it('exposes OS identity synchronously before any platform IPC completes', () => {
+  expect((boundary.api as unknown as { platform: string }).platform).toBe(process.platform)
+  expect(boundary.invoke).not.toHaveBeenCalled()
+})
+
 describe('paid mutations exposed through the preload bridge', () => {
   it.each(['online', 'offline'] as const)('uses valid %s authorization without a network refresh', async (activationMode) => {
     boundary.invoke.mockResolvedValueOnce({ ...validStatus, activationMode }).mockResolvedValueOnce(deleteResult)

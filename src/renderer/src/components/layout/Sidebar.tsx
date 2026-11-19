@@ -188,7 +188,8 @@ export function Sidebar() {
   const { t } = useTranslation('sidebar')
   const location = useLocation()
   const badgeCounts = useBadgeCounts()
-  const { features } = usePlatform()
+  const { features, platform } = usePlatform()
+  const isMac = (window.lightclean?.platform ?? platform) === 'darwin'
   const threatMonitorLoaded = useThreatMonitorStore((s) => s.loaded)
   const threatBlacklistActive = useThreatMonitorStore((s) => s.snapshot) !== null
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
@@ -251,6 +252,8 @@ export function Sidebar() {
         borderRight: '1px solid var(--border-medium)'
       }}
     >
+      {/* Leave the native traffic lights above the logo on macOS. */}
+      {isMac && <div className="drag-region h-10 shrink-0" aria-hidden="true" />}
       {/* Logo — doubles as drag region */}
       <div className="drag-region relative flex items-center gap-3 px-5 pb-4 pt-5">
         <div

@@ -13,6 +13,7 @@ import { getSettings } from './services/settings-store'
 import { startScheduler, stopScheduler, getNextScanTime, notifyScheduledScanComplete, completeScheduleRun } from './services/scheduler'
 import { initAutoUpdater } from './services/auto-updater'
 import { shouldMinimizeOnClose } from './services/window-close-policy'
+import { getApplicationMenuTemplate, getWindowChromeOptions, restoreWindow } from './services/window-chrome'
 import { attachRendererDiagnostics } from './services/renderer-diagnostics'
 import { shouldDisableGpu, applyGpuFallbackSwitches, registerGpuCrashRecovery } from './services/gpu-fallback'
 import { runCli } from './cli'
@@ -346,7 +347,7 @@ function createWindow(): void {
     height,
     minWidth: 900,
     minHeight: 600,
-    frame: false,
+    ...getWindowChromeOptions(process.platform),
     backgroundColor: '#09090b',
     icon,
     show: false,
@@ -443,11 +444,7 @@ function createWindow(): void {
 }
 
 app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    if (!mainWindow.isVisible()) mainWindow.show()
-    mainWindow.focus()
-  }
+  restoreWindow(mainWindow)
 })
 
 app.whenReady().then(() => {
@@ -463,21 +460,7 @@ app.whenReady().then(() => {
   // relies on an Edit menu with the paste role — without an explicit menu
   // the shortcuts break when the app is relaunched as root.
   // We preserve the default appMenu role so Cmd+Q, Cmd+H, About, etc. stay.
-  const appMenu = Menu.buildFromTemplate([
-    { role: 'appMenu' },
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' }
-      ]
-    }
-  ])
+  const appMenu = Menu.buildFromTemplate(getApplicationMenuTemplate(process.platform))
   Menu.setApplicationMenu(appMenu)
 
   const settings = getSettings()
@@ -543,8 +526,7 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       // Window exists but may be hidden (minimize-to-tray) — restore it
-      mainWindow.show()
-      mainWindow.focus()
+      restoreWindow(mainWindow)
     } else if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }

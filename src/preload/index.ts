@@ -138,6 +138,7 @@ async function paidInvoke<T>(channel: string, ...args: unknown[]): Promise<T> {
 
 const api = {
   // Platform
+  platform: process.platform as PlatformInfo['platform'],
   platformInfo: (): Promise<PlatformInfo> => ipcRenderer.invoke(IPC.PLATFORM_INFO),
 
   // Window controls
